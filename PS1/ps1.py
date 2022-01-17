@@ -16,7 +16,9 @@ def extract_red(image):
     Returns:
         numpy.array: Output 2D array containing the red channel.
     """
-    raise NotImplementedError
+    temp_image = np.copy(image)
+    red_channel = temp_image[:,:,2]
+    return red_channel
 
 
 def extract_green(image):
@@ -30,7 +32,9 @@ def extract_green(image):
     Returns:
         numpy.array: Output 2D array containing the green channel.
     """
-    raise NotImplementedError
+    temp_image = np.copy(image)
+    green_channel = temp_image[:,:,1]
+    return green_channel
 
 
 def extract_blue(image):
@@ -44,7 +48,10 @@ def extract_blue(image):
     Returns:
         numpy.array: Output 2D array containing the blue channel.
     """
-    raise NotImplementedError
+    temp_image = np.copy(image)
+    blue_channel = temp_image[:,:,0]
+    
+    return blue_channel
 
 
 def swap_green_blue(image):
@@ -59,8 +66,13 @@ def swap_green_blue(image):
     Returns:
         numpy.array: Output 3D array with the green and blue channels swapped.
     """
-    raise NotImplementedError
-
+    temp_image = np.copy(image)
+    green_channel = temp_image[:,:,1]
+    blue_channel = temp_image[:,:,0]
+    temp_image[:,:,1] = blue_channel
+    temp_image[:,:,0] = green_channel
+    
+    return temp_image
 
 def copy_paste_middle(src, dst, shape):
     """ Copies the middle region of size shape from src to the middle of dst. It is
@@ -85,7 +97,20 @@ def copy_paste_middle(src, dst, shape):
     Returns:
         numpy.array: Output monochrome image (2D array)
     """
-    raise NotImplementedError
+    crop_size_y = int(shape[0]/2)
+    crop_size_x = int(shape[1]/2)
+    src_copy = np.copy(src)
+    center_y_src = int(src_copy.shape[0]/2)
+    center_x_src = int(src_copy.shape[1]/2)
+    dst_copy =np.copy(dst)
+    center_y_dst = int(dst_copy.shape[0]/2)
+    center_x_dst = int(dst_copy.shape[1]/2)
+    
+    src_middle = src_copy[center_y_src-crop_size_y:center_y_src+crop_size_y,center_x_src-crop_size_x:center_x_src+crop_size_x]
+    dst_copy[center_y_dst-crop_size_y:center_y_dst+crop_size_y,center_x_dst-crop_size_x:center_x_dst+crop_size_x]=src_middle
+    
+    return dst_copy
+    
 
 
 
@@ -105,7 +130,34 @@ def copy_paste_middle_circle(src, dst, radius):
     Returns:
         numpy.array: Output monochrome image (2D array)
     """
-    raise NotImplementedError
+    
+    
+    src_copy = np.copy(src)
+    center_y_src = int(src_copy.shape[0]/2)
+    center_x_src = int(src_copy.shape[1]/2)
+    
+    # draw filled circles in white on black background as masks
+    mask = np.zeros_like(src)
+    mask = cv2.circle(mask, (center_x_src,center_y_src), radius, (255,255,255), -1)
+    
+    foreground = cv2.bitwise_and(src_copy, mask)
+    #crop only the circle as square for now 
+    foreground = foreground[center_y_src-radius:center_y_src+radius,center_x_src-radius:center_x_src+radius]
+    
+    dst_copy =np.copy(dst)
+    mask2 = np.zeros_like(dst)
+    center_y_dst = int(dst_copy.shape[0]/2)
+    center_x_dst = int(dst_copy.shape[1]/2)
+    mask2[center_y_dst-radius:center_y_dst+radius,center_x_dst-radius:center_x_dst+radius]= foreground
+    
+    mask3 = np.full(dst.shape, 255,dtype=np.uint8)
+    mask3 = cv2.circle(mask3, (center_x_dst,center_y_dst), radius, (0,0,0), -1)
+    
+    dst_croped = cv2.bitwise_and(dst_copy,mask3)
+    
+    result = cv2.bitwise_or(dst_croped, mask2)
+    
+    return result
 
 
 def image_stats(image):

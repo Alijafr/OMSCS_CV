@@ -7,8 +7,8 @@ from ps1 import *
 def main():
 
     # TODO: Insert your image file paths here:
-    img1_filename = None
-    img2_filename = None
+    img1_filename = "ps1-1-a-1.png"
+    img2_filename = "ps1-1-a-2.png"
 
     # # 1a
     img1 = cv2.imread(img1_filename)
@@ -45,7 +45,7 @@ def main():
     # # 3a
 
     # TODO: Choose the monochrome image for img1.
-    mono1 = None
+    mono1 = img1_green
 
     mono2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
 
