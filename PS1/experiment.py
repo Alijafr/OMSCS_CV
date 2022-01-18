@@ -84,7 +84,7 @@ def main():
     # # 5 Noise
 
     # TODO: Choose a sigma value:
-    sigma = None
+    sigma = 40
 
     # # 5a
     channel = 1

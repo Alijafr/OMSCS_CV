@@ -142,13 +142,14 @@ def copy_paste_middle_circle(src, dst, radius):
     
     foreground = cv2.bitwise_and(src_copy, mask)
     #crop only the circle as square for now 
-    foreground = foreground[center_y_src-radius:center_y_src+radius,center_x_src-radius:center_x_src+radius]
+    foreground = foreground[center_y_src-radius:center_y_src+radius+1,center_x_src-radius:center_x_src+radius+1]
     
     dst_copy =np.copy(dst)
+    
     mask2 = np.zeros_like(dst)
     center_y_dst = int(dst_copy.shape[0]/2)
     center_x_dst = int(dst_copy.shape[1]/2)
-    mask2[center_y_dst-radius:center_y_dst+radius,center_x_dst-radius:center_x_dst+radius]= foreground
+    mask2[center_y_dst-radius:center_y_dst+radius+1,center_x_dst-radius:center_x_dst+radius+1]= foreground
     
     mask3 = np.full(dst.shape, 255,dtype=np.uint8)
     mask3 = cv2.circle(mask3, (center_x_dst,center_y_dst), radius, (0,0,0), -1)
@@ -179,8 +180,13 @@ def image_stats(image):
                mean (float): Input array mean / average value.
                stddev (float): Input array standard deviation.
     """
-    raise NotImplementedError
-
+    temp_image = np.copy(image)
+    min_ = temp_image.min()
+    max_ = temp_image.max()
+    mean = temp_image.mean()
+    std = temp_image.std()
+    
+    return min_,max_,mean,std
 
 def center_and_normalize(image, scale):
     """ Returns an image with the same mean as the original but with values scaled about the
@@ -201,7 +207,17 @@ def center_and_normalize(image, scale):
     Returns:
         numpy.array: Output 2D image.
     """
-    raise NotImplementedError
+    temp_image = np.copy(image)
+    mean = temp_image.mean()
+    std = temp_image.std()
+    
+    
+    temp_image = (temp_image-mean/std)*10 + mean
+    temp_image = temp_image.astype(np.uint8)
+    
+    return temp_image
+    
+    
 
 
 def shift_image_left(image, shift):
@@ -226,7 +242,14 @@ def shift_image_left(image, shift):
     Returns:
         numpy.array: Output shifted 2D image.
     """
-    raise NotImplementedError
+    rows,columns = image.shape
+    shift_x = -shift
+    shift_y = 0
+    
+    matrix = np.float32([[1,0,shift_x],[0,1,shift_y]])
+    shifted_image = cv2.warpAffine(image,matrix,(columns,rows))
+    
+    return shifted_image
 
 
 def difference_image(img1, img2):
@@ -244,7 +267,7 @@ def difference_image(img1, img2):
     Returns:
         numpy.array: Output 2D image containing the result of subtracting img2 from img1.
     """
-    raise NotImplementedError
+    return img1-img2
 
 
 def add_noise(image, channel, sigma):
@@ -272,7 +295,10 @@ def add_noise(image, channel, sigma):
         numpy.array: Output 3D array containing the result of adding Gaussian noise to the
             specified channel.
     """
-    raise NotImplementedError
+    temp_image = image.astype(np.float32)
+    
+    temp_image[:,:,channel] += np.random.normal(0,sigma)
+    return temp_image
 
 
 def build_hybrid_image(image1, image2, cutoff_frequency):
@@ -298,7 +324,7 @@ def build_hybrid_image(image1, image2, cutoff_frequency):
 
     high_frequencies = image2 - cv2.filter2D(image2,-1,filter)
     
-    raise NotImplementedError
+    return high_frequencies + low_frequencies
 
 
 def vis_hybrid_image(hybrid_image):
