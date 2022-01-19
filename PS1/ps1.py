@@ -67,10 +67,12 @@ def swap_green_blue(image):
         numpy.array: Output 3D array with the green and blue channels swapped.
     """
     temp_image = np.copy(image)
-    green_channel = temp_image[:,:,1]
-    blue_channel = temp_image[:,:,0]
+    green_channel = np.copy(temp_image[:,:,1])
+    blue_channel = np.copy(temp_image[:,:,0])
     temp_image[:,:,1] = blue_channel
     temp_image[:,:,0] = green_channel
+    
+    #img = img[0,0, [1,0,2]]
     
     return temp_image
 
@@ -181,8 +183,8 @@ def image_stats(image):
                stddev (float): Input array standard deviation.
     """
     temp_image = np.copy(image)
-    min_ = temp_image.min()
-    max_ = temp_image.max()
+    min_ = float(temp_image.min())
+    max_ = float(temp_image.max())
     mean = temp_image.mean()
     std = temp_image.std()
     
@@ -212,8 +214,8 @@ def center_and_normalize(image, scale):
     std = temp_image.std()
     
     
-    temp_image = (temp_image-mean/std)*10 + mean
-    temp_image = temp_image.astype(np.uint8)
+    temp_image = ((temp_image-mean)/std)*scale + mean
+    #temp_image = temp_image.astype(np.uint8)
     
     return temp_image
     
@@ -242,14 +244,25 @@ def shift_image_left(image, shift):
     Returns:
         numpy.array: Output shifted 2D image.
     """
-    rows,columns = image.shape
-    shift_x = -shift
-    shift_y = 0
+    img = np.copy(image)
+    # img = img.astype(np.float32)
+    # rows,columns = image.shape
+    # shift_x = -shift
+    # shift_y = 0
     
-    matrix = np.float32([[1,0,shift_x],[0,1,shift_y]])
-    shifted_image = cv2.warpAffine(image,matrix,(columns,rows))
+    # matrix = np.float32([[1,0,shift_x],[0,1,shift_y]])
+    # shifted_image = cv2.warpAffine(img,matrix,(columns,rows))
+    # shifted_image = shifted_image[:,:-shift]
+    # shifted_image = shifted_image.astype(np.uint8)
     
-    return shifted_image
+    #remove the shifted pixels
+    
+    img = img[:,shift:]
+    
+    borderType = cv2.BORDER_REPLICATE
+    result = cv2.copyMakeBorder(img, 0, 0, 0, shift, borderType, None, None)
+    # result = shifted_image[:,:-shift]
+    return result
 
 
 def difference_image(img1, img2):
@@ -267,7 +280,14 @@ def difference_image(img1, img2):
     Returns:
         numpy.array: Output 2D image containing the result of subtracting img2 from img1.
     """
-    return img1-img2
+    img_diff = img1-img2
+    # min_ = img_diff.min()
+    # max_ = img_diff.max()
+    result = cv2.normalize(img_diff, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,dtype=cv2.CV_32F)
+    # np.seterr(invalid='ignore')
+    # img_diff = 255.0*(img_diff-min_)/(max_-min_)
+    # img_diff = img_diff.astype(np.uint8)
+    return result
 
 
 def add_noise(image, channel, sigma):
@@ -295,9 +315,10 @@ def add_noise(image, channel, sigma):
         numpy.array: Output 3D array containing the result of adding Gaussian noise to the
             specified channel.
     """
-    temp_image = image.astype(np.float32)
+    temp_image = np.copy(image)
+    temp_image = temp_image.astype(np.float32)
     
-    temp_image[:,:,channel] += np.random.normal(0,sigma)
+    temp_image[:,:,channel] = image[:,:,channel] + np.random.normal(0,sigma)
     return temp_image
 
 
