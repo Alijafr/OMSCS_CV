@@ -84,7 +84,7 @@ def main():
     # # 5 Noise
 
     # TODO: Choose a sigma value:
-    sigma = 30
+    sigma = 50
 
     # # 5a
     channel = 1
@@ -100,7 +100,7 @@ def main():
     img1 = cv2.imread('dog.bmp')
     img2 = cv2.imread('cat.bmp')
 
-    cutoff_frequency = 7
+    cutoff_frequency = 3
 
     hybrid_image = build_hybrid_image(img1, img2, cutoff_frequency)
     

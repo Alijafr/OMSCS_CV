@@ -133,34 +133,56 @@ def copy_paste_middle_circle(src, dst, radius):
         numpy.array: Output monochrome image (2D array)
     """
     
+    # works locally, doesnot work in gradescope
     
+    # src_copy = np.copy(src)
+    # center_y_src = int(src_copy.shape[0]/2)
+    # center_x_src = int(src_copy.shape[1]/2)
+    
+    # # draw filled circles in white on black background as masks
+    # mask = np.zeros_like(src)
+    # mask = cv2.circle(mask, (center_x_src,center_y_src), radius, 255, -1)
+    
+    # foreground = cv2.bitwise_and(src_copy, mask)
+    # #crop only the circle as square for now 
+    # foreground = foreground[center_y_src-radius:center_y_src+radius+1,center_x_src-radius:center_x_src+radius+1]
+    
+    # dst_copy =np.copy(dst)
+    
+    # mask2 = np.zeros_like(dst)
+    # center_y_dst = int(dst_copy.shape[0]/2)
+    # center_x_dst = int(dst_copy.shape[1]/2)
+    # mask2[center_y_dst-radius:center_y_dst+radius+1,center_x_dst-radius:center_x_dst+radius+1]= foreground
+    
+    # mask3 = np.full(dst.shape, 255,dtype=np.uint8)
+    # mask3 = cv2.circle(mask3, (center_x_dst,center_y_dst), radius, 0, -1)
+    
+    # dst_croped = cv2.bitwise_and(dst_copy,mask3)
+    
+    # result = cv2.bitwise_or(dst_croped, mask2)
+    # return result
     src_copy = np.copy(src)
-    center_y_src = int(src_copy.shape[0]/2)
-    center_x_src = int(src_copy.shape[1]/2)
+    center_y_src = int((src_copy.shape[0]-1)/2)
+    center_x_src = int((src_copy.shape[1]-1)/2)
     
     # draw filled circles in white on black background as masks
-    mask = np.zeros_like(src)
-    mask = cv2.circle(mask, (center_x_src,center_y_src), radius, (255,255,255), -1)
+    mask = np.zeros_like(src,dtype=np.uint8)
+    mask = cv2.circle(mask, (center_x_src,center_y_src), radius, 255, -1)
+    mask = mask.astype(np.bool)
     
-    foreground = cv2.bitwise_and(src_copy, mask)
-    #crop only the circle as square for now 
-    foreground = foreground[center_y_src-radius:center_y_src+radius+1,center_x_src-radius:center_x_src+radius+1]
     
     dst_copy =np.copy(dst)
+    center_y_dst = int((dst.shape[0]-1)/2)
+    center_x_dst = int((dst.shape[1]-1)/2)
     
-    mask2 = np.zeros_like(dst)
-    center_y_dst = int(dst_copy.shape[0]/2)
-    center_x_dst = int(dst_copy.shape[1]/2)
-    mask2[center_y_dst-radius:center_y_dst+radius+1,center_x_dst-radius:center_x_dst+radius+1]= foreground
+    mask2 = np.zeros_like(dst,dtype=np.uint8)
+    mask2 = cv2.circle(mask2, (center_x_dst,center_y_dst), radius, 255, -1)
+    mask2 = mask2.astype(np.bool)
+
+    dst_copy[mask2] = src_copy[mask]
     
-    mask3 = np.full(dst.shape, 255,dtype=np.uint8)
-    mask3 = cv2.circle(mask3, (center_x_dst,center_y_dst), radius, (0,0,0), -1)
     
-    dst_croped = cv2.bitwise_and(dst_copy,mask3)
-    
-    result = cv2.bitwise_or(dst_croped, mask2)
-    
-    return result
+    return dst_copy
 
 
 def image_stats(image):
@@ -316,9 +338,9 @@ def add_noise(image, channel, sigma):
             specified channel.
     """
     temp_image = np.copy(image)
-    temp_image = temp_image.astype(np.float32)
+    temp_image = temp_image.astype(np.float64)
     
-    temp_image[:,:,channel] = image[:,:,channel] + np.random.normal(0,sigma)
+    temp_image[:,:,channel] += np.random.normal(0,sigma,(temp_image.shape[:2]))
     return temp_image
 
 
