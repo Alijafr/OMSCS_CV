@@ -26,7 +26,28 @@ def traffic_light_detection(img_in, radii_range):
         state (str): traffic light state. A value in {'red', 'yellow',
                      'green'}
     """
-    raise NotImplementedError
+    img_copy = np.copy(img_in)
+    gray = cv2.cvtColor(img_copy, cv2.COLOR_BGR2GRAY)
+    #canny = cv2.Canny(gray,30,70)
+    
+    circles = cv2.HoughCircles(gray, method=cv2.HOUGH_GRADIENT,dp=1.5, minDist= 10,param1=70,param2=25,minRadius=radii_range[0],maxRadius=radii_range[-1]) 
+    circles = circles.squeeze(0)
+    
+    hsv = cv2.cvtColor(img_copy, cv2.COLOR_BGR2HSV)
+    #sort from from the lowest (pixel) in y to largest (red,yellow, green)
+    circles = circles[circles[:,1].argsort()]
+    states = ['red','yellow','green']
+    max_intesity = 0 # use value of HSV
+    for i in range(len(circles)):
+        #intensity = gray[int(circles[i][1]),int(circles[i][0])]
+        intensity = hsv[int(circles[i][1]),int(circles[i][0])]
+        if intensity[-1] > max_intesity: #use the value in HSV
+            color_index= i
+            coordinates = circles[i]
+    # cv2.imshow("canny",canny)
+    # cv2.waitKey()
+    
+    return coordinates, states[color_index]
 
 
 def construction_sign_detection(img_in):
@@ -36,8 +57,95 @@ def construction_sign_detection(img_in):
         img_in (numpy.array): image containing a traffic light.
     Returns:
         (x,y) tuple of the coordinates of the center of the sign.
-    """
-    raise NotImplementedError
+    """ 
+    img_copy = np.copy(img_in)
+    gray = cv2.cvtColor(img_copy, cv2.COLOR_BGR2GRAY)
+    canny = cv2.Canny(gray,30,70)
+    # # Creating kernel
+    kernel = np.ones((2, 2), np.uint8)
+    canny = cv2.dilate(canny, kernel)
+    # cv2.imshow("canny",canny)
+    # cv2.waitKey()
+    minLineLength = 0
+    maxLineGap = 2
+    lines = cv2.HoughLines(canny, 1, np.pi / 180, 100, minLineLength, maxLineGap)
+    result_image = img_copy
+    ploygon_lines =[]
+    if lines is not None:
+        for i in range(0, len(lines)):
+            rho = lines[i][0][0]
+            theta = lines[i][0][1]
+            a = np.cos(theta)
+            b = np.sin(theta)
+            x0 = a * rho
+            y0 = b * rho
+            pt1 = (int(x0 + 1000*(-b)), int(y0 + 1000*(a)))
+            pt2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
+            slope = (pt2[1]-pt1[1])/(pt2[0]-pt1[0])
+            if abs(slope)==1:
+                #print(slope)
+                #print(pt1)
+                ploygon_lines.append((pt1,pt2))
+                cv2.line(result_image, pt1, pt2, (0,0,255), 2, cv2.LINE_AA)
+    cv2.imshow("canny",result_image)
+    cv2.waitKey()
+    
+    
+    # template = cv2.imread('input_images/construction_template.png')
+    # gray_tamplate = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+    # height, width = template.shape[:2]
+    # canny_template = cv2.Canny(gray_tamplate, 30, 70)
+    # #Creating kernel
+    # kernel = np.ones((2, 2), np.uint8)
+    # canny_template = cv2.dilate(canny_template, kernel)
+    # # cv2.imshow("canny",canny_template)
+    # # cv2.waitKey()
+    # ght = cv2.createGeneralizedHoughGuil()
+    
+    # ght.setTemplate(canny)
+
+    # ght.setMinDist(100)
+    # ght.setMinAngle(0)
+    # ght.setMaxAngle(50)
+    # ght.setAngleStep(1)
+    # ght.setLevels(360)
+    # ght.setMinScale(1)
+    # ght.setMaxScale(1.3)
+    # ght.setScaleStep(0.05)
+    # ght.setAngleThresh(100)
+    # ght.setScaleThresh(100)
+    # ght.setPosThresh(100)
+    # ght.setAngleEpsilon(1)
+    # ght.setLevels(360)
+    # ght.setXi(0)
+    
+    # positions = ght.detect(gray)[0][0]
+    # print(positions)
+    # #return (center_x,center_y)
+    
+    # for position in positions:
+    #     center_col = int(position[0])
+    #     center_row = int(position[1])
+    #     scale = position[2]
+    #     angle = int(position[3])
+
+    #     found_height = int(height * scale)
+    #     found_width = int(width * scale)
+
+    #     rectangle = ((center_col, center_row),
+    #                  (found_width, found_height),
+    #                  angle)
+
+    #     box = cv2.boxPoints(rectangle)
+    #     box = np.int0(box)
+    #     cv2.drawContours(img_copy, [box], 0, (0, 0, 255), 2)
+
+    #     for i in range(-2, 3):
+    #         for j in range(-2, 3):
+    #             img_copy[center_row + i, center_col + j] = 0, 0, 255
+    # cv2.imshow("canny",img_copy)
+    # cv2.waitKey()
+        
 
 
 def template_match(img_orig, img_template, method):
