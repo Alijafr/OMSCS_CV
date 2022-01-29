@@ -90,6 +90,9 @@ def construction_sign_detection(img_in):
     cv2.imshow("canny",result_image)
     cv2.waitKey()
     
+    #try the genaralized hough transform ? 
+    #ght = cv2.createGeneralizedHoughBallard()
+    
     
     # template = cv2.imread('input_images/construction_template.png')
     # gray_tamplate = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
@@ -164,6 +167,10 @@ def template_match(img_orig, img_template, method):
        Suggestion : For loops in python are notoriously slow
        Can we find a vectorized solution to make it faster?
     """
+    img_copy = np.copy(img_orig)
+    #seems gradescope already pass gray scale iamge
+    #img_orig_gray = cv2.cvtColor(img_orig,cv2.COLOR_BGR2GRAY)
+    #img_temp_gray = cv2.cvtColor(img_template,cv2.COLOR_BGR2GRAY)
     result = np.zeros(
         (
             (img_orig.shape[0] - img_template.shape[0] + 1),
@@ -174,41 +181,66 @@ def template_match(img_orig, img_template, method):
     top_left = []
     """Once you have populated the result matrix with the similarity metric corresponding to each overlap, return the topmost and leftmost pixel of
     the matched window from the result matrix. You may look at Open CV and numpy post processing functions to extract location of maximum match"""
+    width_orig, height_orig = img_orig.shape[:2]
+    width_temp, height_temp = img_template.shape[:2]
     # Sum of squared differences
     if method == "tm_ssd":
         """Your code goes here"""
-        raise NotImplementedError
+        for i in range(len(result)):
+            for j in range(len(result[1])):
+                result[i,j] = np.sum((img_copy[i:i+width_temp,j:j+height_temp]-img_template)**2)
+                
+        min_pixel_value = np.argwhere(result==np.min(result))
+        top_left = (min_pixel_value[0][1],min_pixel_value[0][0])
+        # return top_left
 
     # Normalized sum of squared differences
     elif method == "tm_nssd":
         """Your code goes here"""
-        raise NotImplementedError
+        for i in range(len(result)):
+            for j in range(len(result[1])):
+                result[i,j] = np.sum((img_copy[i:i+width_temp,j:j+height_temp]-img_template)**2)
+                result[i,j] /= np.sqrt(np.sum((img_copy[i:i+width_temp,j:j+height_temp])**2 * (img_template)**2))       
+        min_pixel_value = np.argwhere(result==np.min(result))
+        top_left = (min_pixel_value[0][1],min_pixel_value[0][0])
 
     # Cross Correlation
     elif method == "tm_ccor":
         """Your code goes here"""
-        raise NotImplementedError
-
+        for i in range(len(result)):
+            for j in range(len(result[1])):
+                result[i,j] = np.sum((img_copy[i:i+width_temp,j:j+height_temp]*img_template))
+        min_pixel_value = np.argwhere(result==np.min(result))
+        top_left = (min_pixel_value[0][1],min_pixel_value[0][0])
     # Normalized Cross Correlation
     elif method == "tm_nccor":
         """Your code goes here"""
-        raise NotImplementedError
+        for i in range(len(result)):
+            for j in range(len(result[1])):
+                result[i,j] = np.sum((img_copy[i:i+width_temp,j:j+height_temp]*img_template))
+                result[i,j] /= np.sqrt(np.sum((img_copy[i:i+width_temp,j:j+height_temp])**2 * (img_template)**2))
+        min_pixel_value = np.argwhere(result==np.min(result))
+        top_left = (min_pixel_value[0][1],min_pixel_value[0][0])
 
     else:
         """Your code goes here"""
         # Invalid technique
-    raise NotImplementedError
+        print("Invalid technique")
+    
     return top_left
 
-
-'''Below is the helper code to print images for the report'''
-#     cv2.rectangle(img_orig,top_left, bottom_right, 255, 2)
-#     plt.subplot(121),plt.imshow(result,cmap = 'gray')
-#     plt.title('Matching Result'), plt.xticks([]), plt.yticks([])
-#     plt.subplot(122),plt.imshow(img_orig,cmap = 'gray')
-#     plt.title('Detected Point'), plt.xticks([]), plt.yticks([])
-#     plt.suptitle(method)
-#     plt.show()
+    # img_copy = np.copy(img_orig)
+    # '''Below is the helper code to print images for the report'''
+    # bottom_right = (top_left[0]+height_temp, top_left[1]+width_temp)
+    # img_copy = cv2.rectangle(img_copy,top_left,bottom_right,(0,0,255),2)
+    # cv2.imshow("result image",img_copy)
+    # cv2.waitKey()
+    # plt.subplot(121),plt.imshow(result,cmap = 'gray')
+    # plt.title('Matching Result'), plt.xticks([]), plt.yticks([])
+    # plt.subplot(122),plt.imshow(img_copy)
+    # plt.title('Detected Point'), plt.xticks([]), plt.yticks([])
+    # #plt.suptitle(method)
+    # plt.show()
 
 
 def dft(x):

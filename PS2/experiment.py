@@ -201,8 +201,8 @@ def low_pass_filter_runner():
 
 
 if __name__ == "__main__":
-    part_1a()
-    part_1b()
+    # part_1a()
+    # part_1b()
     template_match_test()
-    compression_runner()
-    low_pass_filter_runner()
+    # compression_runner()
+    # low_pass_filter_runner()
