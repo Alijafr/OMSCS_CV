@@ -251,8 +251,14 @@ def dft(x):
         y (np.array): 1-dimensional numpy array of shape (n,) representing Fourier Transformed Signal
 
     """
-    x = np.asarray(x, dtype=np.complex_)
-    raise NotImplementedError
+    N = len(x)
+    m = np.arange(N) #is actually x in the equation but cannot called x since the input is x 
+    k = m.reshape((N, 1))
+    e = np.exp(-2j * np.pi * k * m / N)
+    
+    dft_ = np.dot(e, x)
+    
+    return dft_
 
 
 def idft(x):
@@ -263,8 +269,15 @@ def idft(x):
         y (np.array): 1-dimensional numpy array of shape (n,) representing signal
 
     """
-    x = np.asarray(x, dtype=np.complex_)
-    raise NotImplementedError
+    
+    N = len(x)
+    m = np.arange(N) #is actually x in the equation but cannot called x since the input is x 
+    k = m.reshape((N, 1))
+    e = np.exp(-2j * np.pi * k * m / N)
+    
+    inv_dft = np.dot(e, x)/N
+    
+    return inv_dft
 
 
 def dft2(img):
