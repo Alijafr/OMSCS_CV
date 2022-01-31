@@ -256,6 +256,7 @@ def dft(x):
     k = m.reshape((N, 1))
     e = np.exp(-2j * np.pi * k * m / N)
     
+    #dft_ = np.sum(e*x,axis=1)
     dft_ = np.dot(e, x)
     
     return dft_
@@ -273,8 +274,8 @@ def idft(x):
     N = len(x)
     m = np.arange(N) #is actually x in the equation but cannot called x since the input is x 
     k = m.reshape((N, 1))
-    e = np.exp(-2j * np.pi * k * m / N)
-    
+    e = np.exp(2j * np.pi * k * m / N)
+    #inv_dft = np.sum(e*x,axis=1)/N
     inv_dft = np.dot(e, x)/N
     
     return inv_dft
@@ -288,7 +289,32 @@ def dft2(img):
         y (np.array): 2-dimensional numpy array of shape (n,m) representing Fourier-Transformed image
 
     """
-    raise NotImplementedError
+    
+    
+    Nx= len(img)
+    Ny= len(img[0])
+    dft_2d = np.zeros((Nx,Ny),dtype=np.complex)
+    # mx = np.arange(Nx)
+    # kx = mx.reshape((Nx, 1))
+    # my = np.arange(Ny)
+    # ky = my.reshape((Ny, 1))
+    
+    
+    # e = np.exp(-2j * np.pi * (kx * mx/Nx + ky*my/Ny))
+    
+    # dft_2d = np.dot(e,img)
+    row_dft_2d = np.copy(dft_2d)
+    
+    for i in range(Ny):
+        dft_ = dft(img[:,i])
+        row_dft_2d[:,i] = dft_
+    for i in range(Nx):
+        dft_ = dft(row_dft_2d[i,:])
+        dft_2d[i,:] = dft_
+        
+    
+    return dft_2d
+    
 
 
 def idft2(img):
@@ -299,7 +325,29 @@ def idft2(img):
         y (np.array): 2-dimensional numpy array of shape (n,m) representing image
 
     """
-    raise NotImplementedError
+    Nx= len(img)
+    Ny= len(img[0])
+    inv_dft_2d = np.zeros((Nx,Ny),dtype=np.complex)
+    # mx = np.arange(Nx)
+    # kx = mx.reshape((Nx, 1))
+    # my = np.arange(Ny)
+    # ky = my.reshape((Ny, 1))
+    
+    
+    # e = np.exp(-2j * np.pi * (kx * mx/Nx + ky*my/Ny))
+    
+    # dft_2d = np.dot(e,img)
+    row_inv_dft_2d = np.copy(inv_dft_2d)
+    
+    for i in range(Ny):
+        inv_dft_ = idft(img[:,i])
+        row_inv_dft_2d[:,i] = inv_dft_
+    for i in range(Nx):
+        inv_dft_ = idft(row_inv_dft_2d[i,:])
+        inv_dft_2d[i,:] = inv_dft_
+        
+    
+    return inv_dft_2d
 
 
 def compress_image_fft(img_bgr, threshold_percentage):
@@ -312,7 +360,26 @@ def compress_image_fft(img_bgr, threshold_percentage):
         compressed_frequency_img (np.array): numpy array of shape (n,m,3) representing the compressed image in the frequency domain
 
     """
-    raise NotImplementedError
+    img_compressed = np.copy(img_bgr)
+    compressed_frequency_img = np.copy(img_bgr)
+    for i in range(3):#iterate over the 3 channels
+        img = img_bgr[:,:,i]
+        dft_=dft2(img)
+        flattened_dft = dft_.flatten()
+        sorted_f = -np.sort(-flattened_dft) #the 2 negative are needed to sort from largest to smallest (otherwise it will be reverse)
+        N_2= len(flattened_dft)
+        threshold_index = int(threshold_percentage*N_2)
+        threshold = sorted_f[threshold_index]
+        flattened_dft[ flattened_dft<threshold] = 0
+        img_freq_channel = flattened_dft.reshape(img.shape)
+        img_compressed_channel = idft(img_freq_channel)
+        
+        img_compressed[:,:,i] = img_compressed_channel
+        compressed_frequency_img[:,:,i] = img_freq_channel
+    
+    return img_compressed , compressed_frequency_img
+        
+        
 
 
 def low_pass_filter(img_bgr, r):
