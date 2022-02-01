@@ -212,6 +212,8 @@ def template_match(img_orig, img_template, method):
                 result[i,j] = np.sum((img_copy[i:i+width_temp,j:j+height_temp]*img_template))
         min_pixel_value = np.argwhere(result==np.min(result))
         top_left = (min_pixel_value[0][1],min_pixel_value[0][0])
+        #max_pixel_value = np.argwhere(result==np.min(result))
+        #top_left = (min_pixel_value[0][1],min_pixel_value[0][0])
     # Normalized Cross Correlation
     elif method == "tm_nccor":
         """Your code goes here"""
@@ -221,6 +223,8 @@ def template_match(img_orig, img_template, method):
                 result[i,j] /= np.sqrt(np.sum((img_copy[i:i+width_temp,j:j+height_temp])**2 * (img_template)**2))
         min_pixel_value = np.argwhere(result==np.min(result))
         top_left = (min_pixel_value[0][1],min_pixel_value[0][0])
+        #max_pixel_value = np.argwhere(result==np.min(result))
+        #top_left = (min_pixel_value[0][1],min_pixel_value[0][0])
 
     else:
         """Your code goes here"""
@@ -358,23 +362,36 @@ def compress_image_fft(img_bgr, threshold_percentage):
     Returns:
         img_compressed (np.array): numpy array of shape (n,m,3) representing compressed image
         compressed_frequency_img (np.array): numpy array of shape (n,m,3) representing the compressed image in the frequency domain
+        
 
     """
-    img_compressed = np.copy(img_bgr)
-    compressed_frequency_img = np.copy(img_bgr)
+    #convert the image to flaot64 to preform the calcualtions 
+    img_compressed = np.copy(img_bgr).astype(np.float64)
+    # variable to save the compressed frequence image
+    compressed_frequency_img = np.zeros((img_bgr.shape),dtype=np.complex128)
     for i in range(3):#iterate over the 3 channels
+        #save the channel image
         img = img_bgr[:,:,i]
-        dft_=dft2(img)
+        #dft_=dft2(img) #too slow
+        #convert to DFT
+        dft_ = np.fft.fft2(img) 
+        # flatten the DFT to sort it
         flattened_dft = dft_.flatten()
-        sorted_f = -np.sort(-flattened_dft) #the 2 negative are needed to sort from largest to smallest (otherwise it will be reverse)
-        N_2= len(flattened_dft)
-        threshold_index = int(threshold_percentage*N_2)
+        # sort from largest to smallest 
+        sorted_f = -np.sort(-np.abs(flattened_dft)) #the 2 negative are needed to sort from largest to smallest (otherwise it will be reverse)
+        #find the index at which the threshold will be taken 
+        n_2= len(flattened_dft)
+        threshold_index = int(threshold_percentage*n_2)
         threshold = sorted_f[threshold_index]
-        flattened_dft[ flattened_dft<threshold] = 0
-        img_freq_channel = flattened_dft.reshape(img.shape)
-        img_compressed_channel = idft(img_freq_channel)
         
-        img_compressed[:,:,i] = img_compressed_channel
+        #flattened_dft[ np.abs(flattened_dft)<=threshold] = 0 + 0j
+        mask = np.zeros(img.shape)
+        mask = cv2.circle(mask, (int(img.shape[0]/2),int(img.shape[1]/2)), int(threshold), 1,-1)
+        
+        img_freq_channel = mask * dft_
+        img_compressed_channel = np.fft.ifft2(img_freq_channel)
+        
+        img_compressed[:,:,i] = img_compressed_channel.real
         compressed_frequency_img[:,:,i] = img_freq_channel
     
     return img_compressed , compressed_frequency_img
@@ -392,4 +409,25 @@ def low_pass_filter(img_bgr, r):
         low_pass_frequency_img (np.array): numpy array of shape (n,m,3) representing the low pass filtered image in the frequency domain
 
     """
-    raise NotImplementedError
+    #convert the image to flaot64 to preform the calcualtions 
+    img_compressed = np.copy(img_bgr).astype(np.float64)
+    # variable to save the compressed frequence image
+    compressed_frequency_img = np.zeros((img_bgr.shape),dtype=np.complex128)
+    for i in range(3):#iterate over the 3 channels
+        #save the channel image
+        img = img_bgr[:,:,i]
+        #convert to DFT
+        dft_ = np.fft.fft2(img)
+        #shift the spectral freq so that low frequencies are in teh center of the image
+        dft_ = np.fft.fftshift(dft_)
+        mask = np.zeros(img.shape)
+        mask = cv2.circle(mask, (int(img.shape[0]/2),int(img.shape[1]/2)), r, 1,-1).astype(np.complex128)
+        mask[np.abs(mask)>0] = 1+1j
+        img_freq_channel = mask * dft_
+        img_freq_channel = np.fft.ifftshift(dft_)
+        img_compressed_channel = np.fft.ifft2(img_freq_channel)
+        
+        img_compressed[:,:,i] = img_compressed_channel.real
+        compressed_frequency_img[:,:,i] = img_freq_channel
+    
+    return img_compressed , compressed_frequency_img

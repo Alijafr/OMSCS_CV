@@ -157,11 +157,11 @@ def template_match_test():
         img_in = cv2.imread("input_images/{}.png".format(img_fl))
         img_template = cv2.imread(
             "input_images/{}".format(img_template_fl))
-
+        width, height= img_template.shape[:2]
         for method in ("tm_ssd", "tm_nssd", "tm_ccor", "tm_nccor"):
             """ Convert images to gray scale to save computation """
             top_left = ps2.template_match(img_in, img_template, method)
-            bottom_right = None
+            bottom_right = (top_left[0]+height, top_left[1]+width)
             """Below is the helper code to print images for the report"""
             im_out = img_in.copy()
             cv2.rectangle(im_out, top_left, bottom_right, 255, 2)
@@ -176,13 +176,14 @@ def compression_runner():
     img_bgr = cv2.imread(INPUT_DIR + 'dog.jpg', cv2.IMREAD_COLOR)
 
     "FILL THIS VALUE OUT"
-    keep = None
+    keep = 0.01
 
     img_compressed, compressed_frequency_img = ps2.compress_image_fft(
         img_bgr, keep)
+    compressed_frequency_img = np.fft.fftshift(compressed_frequency_img)
     cv2.imwrite(OUTPUT_DIR + 'dog_compressed.jpg', img_compressed)
     cv2.imwrite(OUTPUT_DIR + 'dog_compressed_frequency.jpg',
-                compressed_frequency_img)
+                20*np.log(np.abs(compressed_frequency_img)))
 
 
 def low_pass_filter_runner():
@@ -190,14 +191,13 @@ def low_pass_filter_runner():
     img_bgr = np.ndarray.astype(img_bgr, dtype=np.double)
 
     "FILL THIS VALUE OUT"
-    radius = None
+    radius = 100
 
     img_low_pass, low_pass_frequency_img_mag = ps2.low_pass_filter(
         img_bgr, radius)
 
     cv2.imwrite(OUTPUT_DIR + 'cat_lpf.jpg', img_low_pass)
-    cv2.imwrite(OUTPUT_DIR + 'cat_lpf_frequency.jpg',
-                low_pass_frequency_img_mag)
+    cv2.imwrite(OUTPUT_DIR + 'cat_lpf_frequency.jpg',20*np.log(np.abs(low_pass_frequency_img_mag)))
 
 
 if __name__ == "__main__":
