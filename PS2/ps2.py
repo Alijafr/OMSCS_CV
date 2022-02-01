@@ -62,92 +62,42 @@ def construction_sign_detection(img_in):
     gray = cv2.cvtColor(img_copy, cv2.COLOR_BGR2GRAY)
     canny = cv2.Canny(gray,30,70)
     # # Creating kernel
-    kernel = np.ones((2, 2), np.uint8)
-    canny = cv2.dilate(canny, kernel)
+    #kernel = np.ones((2, 2), np.uint8)
+    #canny = cv2.dilate(canny, kernel)
     # cv2.imshow("canny",canny)
     # cv2.waitKey()
     minLineLength = 0
-    maxLineGap = 2
-    lines = cv2.HoughLines(canny, 1, np.pi / 180, 100, minLineLength, maxLineGap)
+    maxLineGap = 0
+    lines = cv2.HoughLinesP(canny, 1, np.pi / 4, 45, minLineLength, maxLineGap)
     result_image = img_copy
-    ploygon_lines =[]
+    ploygon_x =[]
+    ploygon_y = []
+    tolerance = 10
     if lines is not None:
-        for i in range(0, len(lines)):
-            rho = lines[i][0][0]
-            theta = lines[i][0][1]
-            a = np.cos(theta)
-            b = np.sin(theta)
-            x0 = a * rho
-            y0 = b * rho
-            pt1 = (int(x0 + 1000*(-b)), int(y0 + 1000*(a)))
-            pt2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
-            slope = (pt2[1]-pt1[1])/(pt2[0]-pt1[0])
-            if abs(slope)==1:
-                #print(slope)
-                #print(pt1)
-                ploygon_lines.append((pt1,pt2))
-                cv2.line(result_image, pt1, pt2, (0,0,255), 2, cv2.LINE_AA)
-    cv2.imshow("canny",result_image)
-    cv2.waitKey()
-    
-    #try the genaralized hough transform ? 
-    #ght = cv2.createGeneralizedHoughBallard()
-    
-    
-    # template = cv2.imread('input_images/construction_template.png')
-    # gray_tamplate = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
-    # height, width = template.shape[:2]
-    # canny_template = cv2.Canny(gray_tamplate, 30, 70)
-    # #Creating kernel
-    # kernel = np.ones((2, 2), np.uint8)
-    # canny_template = cv2.dilate(canny_template, kernel)
-    # # cv2.imshow("canny",canny_template)
-    # # cv2.waitKey()
-    # ght = cv2.createGeneralizedHoughGuil()
-    
-    # ght.setTemplate(canny)
+       for line in lines:
+           x1, y1, x2, y2 = line[0]
+           #cv2.line(result_image, (x1, y1), (x2, y2), (255, 0, 0), 3)
+           
+           if x2-x1 != 0:
+               slope = (y2-y1)/(x2-x1)
+               if abs(slope)==1:
+                   print(slope)
+                   ploygon_x.append(x1)
+                   ploygon_x.append(x2)
+                   ploygon_y.append(y1)
+                   ploygon_y.append(y2)
+                   cv2.line(result_image, (x1, y1), (x2, y2), (255, 0, 0), 3)
+                   #print(pt1)
+                   #ploygon_lines.append((pt1,pt2))
 
-    # ght.setMinDist(100)
-    # ght.setMinAngle(0)
-    # ght.setMaxAngle(50)
-    # ght.setAngleStep(1)
-    # ght.setLevels(360)
-    # ght.setMinScale(1)
-    # ght.setMaxScale(1.3)
-    # ght.setScaleStep(0.05)
-    # ght.setAngleThresh(100)
-    # ght.setScaleThresh(100)
-    # ght.setPosThresh(100)
-    # ght.setAngleEpsilon(1)
-    # ght.setLevels(360)
-    # ght.setXi(0)
+    ploygon_x = np.array(ploygon_x)
+    ploygon_y = np.array(ploygon_y)
+        
+    #cv2.imshow("canny",result_image)
+    #cv2.waitKey()
     
-    # positions = ght.detect(gray)[0][0]
-    # print(positions)
-    # #return (center_x,center_y)
+    return np.median(ploygon_x),np.median(ploygon_x)
     
-    # for position in positions:
-    #     center_col = int(position[0])
-    #     center_row = int(position[1])
-    #     scale = position[2]
-    #     angle = int(position[3])
-
-    #     found_height = int(height * scale)
-    #     found_width = int(width * scale)
-
-    #     rectangle = ((center_col, center_row),
-    #                  (found_width, found_height),
-    #                  angle)
-
-    #     box = cv2.boxPoints(rectangle)
-    #     box = np.int0(box)
-    #     cv2.drawContours(img_copy, [box], 0, (0, 0, 255), 2)
-
-    #     for i in range(-2, 3):
-    #         for j in range(-2, 3):
-    #             img_copy[center_row + i, center_col + j] = 0, 0, 255
-    # cv2.imshow("canny",img_copy)
-    # cv2.waitKey()
         
 
 
@@ -181,17 +131,17 @@ def template_match(img_orig, img_template, method):
     top_left = []
     """Once you have populated the result matrix with the similarity metric corresponding to each overlap, return the topmost and leftmost pixel of
     the matched window from the result matrix. You may look at Open CV and numpy post processing functions to extract location of maximum match"""
-    width_orig, height_orig = img_orig.shape[:2]
-    width_temp, height_temp = img_template.shape[:2]
+    rows_orig, cols_orig = img_orig.shape[:2]
+    rows_temp, cols_temp = img_template.shape[:2]
     # Sum of squared differences
     if method == "tm_ssd":
         """Your code goes here"""
         for i in range(len(result)):
             for j in range(len(result[1])):
-                result[i,j] = np.sum((img_copy[i:i+width_temp,j:j+height_temp]-img_template)**2)
+                result[i,j] = np.sum((img_copy[i:i+rows_temp,j:j+cols_temp]-img_template)**2)
                 
         min_pixel_value = np.argwhere(result==np.min(result))
-        top_left = (min_pixel_value[0][1],min_pixel_value[0][0])
+        top_left = (min_pixel_value[0][1],min_pixel_value[0][0]) #points in (x,y) while pixel is in (y,x)
         # return top_left
 
     # Normalized sum of squared differences
@@ -199,32 +149,33 @@ def template_match(img_orig, img_template, method):
         """Your code goes here"""
         for i in range(len(result)):
             for j in range(len(result[1])):
-                result[i,j] = np.sum((img_copy[i:i+width_temp,j:j+height_temp]-img_template)**2)
-                result[i,j] /= np.sqrt(np.sum((img_copy[i:i+width_temp,j:j+height_temp])**2 * (img_template)**2))       
+                result[i,j] = np.sum((img_copy[i:i+rows_temp,j:j+cols_temp]-img_template)**2)
+                result[i,j] /= np.sqrt(np.sum((img_copy[i:i+rows_temp,j:j+cols_temp])**2 * (img_template)**2))       
         min_pixel_value = np.argwhere(result==np.min(result))
-        top_left = (min_pixel_value[0][1],min_pixel_value[0][0])
+        top_left = (min_pixel_value[0][1],min_pixel_value[0][0]) #points in (x,y) while pixel is in (y,x)
 
     # Cross Correlation
     elif method == "tm_ccor":
         """Your code goes here"""
         for i in range(len(result)):
             for j in range(len(result[1])):
-                result[i,j] = np.sum((img_copy[i:i+width_temp,j:j+height_temp]*img_template))
+                result[i,j] = np.sum((img_copy[i:i+rows_temp,j:j+cols_temp]*img_template))
+        
         min_pixel_value = np.argwhere(result==np.min(result))
-        top_left = (min_pixel_value[0][1],min_pixel_value[0][0])
-        #max_pixel_value = np.argwhere(result==np.min(result))
-        #top_left = (min_pixel_value[0][1],min_pixel_value[0][0])
+        top_left = (min_pixel_value[0][1],min_pixel_value[0][0]) #points in (x,y) while pixel is in (y,x)
+        #max_pixel_value = np.argwhere(result==np.max(result))
+        #top_left = (max_pixel_value[0][1],max_pixel_value[0][0])
     # Normalized Cross Correlation
     elif method == "tm_nccor":
         """Your code goes here"""
         for i in range(len(result)):
             for j in range(len(result[1])):
-                result[i,j] = np.sum((img_copy[i:i+width_temp,j:j+height_temp]*img_template))
-                result[i,j] /= np.sqrt(np.sum((img_copy[i:i+width_temp,j:j+height_temp])**2 * (img_template)**2))
+                result[i,j] = np.sum((img_copy[i:i+rows_temp,j:j+cols_temp]*img_template))
+                result[i,j] /= np.sqrt(np.sum((img_copy[i:i+rows_temp,j:j+cols_temp])**2) * np.sum(img_template**2))
         min_pixel_value = np.argwhere(result==np.min(result))
         top_left = (min_pixel_value[0][1],min_pixel_value[0][0])
-        #max_pixel_value = np.argwhere(result==np.min(result))
-        #top_left = (min_pixel_value[0][1],min_pixel_value[0][0])
+        #max_pixel_value = np.argwhere(result==np.max(result))
+        #top_left = (max_pixel_value[0][1],max_pixel_value[0][0])
 
     else:
         """Your code goes here"""
@@ -384,14 +335,14 @@ def compress_image_fft(img_bgr, threshold_percentage):
         threshold_index = int(threshold_percentage*n_2)
         threshold = sorted_f[threshold_index]
         
-        #flattened_dft[ np.abs(flattened_dft)<=threshold] = 0 + 0j
-        mask = np.zeros(img.shape)
-        mask = cv2.circle(mask, (int(img.shape[0]/2),int(img.shape[1]/2)), int(threshold), 1,-1)
-        
-        img_freq_channel = mask * dft_
+        dft_[np.abs(dft_) <= threshold] = 0
+        img_freq_channel= dft_
         img_compressed_channel = np.fft.ifft2(img_freq_channel)
         
+        
+        #img_compressed[:,:,i] = np.abs(img_compressed_channel)
         img_compressed[:,:,i] = img_compressed_channel.real
+
         compressed_frequency_img[:,:,i] = img_freq_channel
     
     return img_compressed , compressed_frequency_img
@@ -421,10 +372,9 @@ def low_pass_filter(img_bgr, r):
         #shift the spectral freq so that low frequencies are in teh center of the image
         dft_ = np.fft.fftshift(dft_)
         mask = np.zeros(img.shape)
-        mask = cv2.circle(mask, (int(img.shape[0]/2),int(img.shape[1]/2)), r, 1,-1).astype(np.complex128)
-        mask[np.abs(mask)>0] = 1+1j
+        mask = cv2.circle(mask, (int(img.shape[0]/2),int(img.shape[1]/2)), r, 1,-1)
         img_freq_channel = mask * dft_
-        img_freq_channel = np.fft.ifftshift(dft_)
+        img_freq_channel = np.fft.ifftshift(img_freq_channel)
         img_compressed_channel = np.fft.ifft2(img_freq_channel)
         
         img_compressed[:,:,i] = img_compressed_channel.real

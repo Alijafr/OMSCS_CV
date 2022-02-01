@@ -157,11 +157,11 @@ def template_match_test():
         img_in = cv2.imread("input_images/{}.png".format(img_fl))
         img_template = cv2.imread(
             "input_images/{}".format(img_template_fl))
-        width, height= img_template.shape[:2]
+        rows, cols= img_template.shape[:2]
         for method in ("tm_ssd", "tm_nssd", "tm_ccor", "tm_nccor"):
             """ Convert images to gray scale to save computation """
             top_left = ps2.template_match(img_in, img_template, method)
-            bottom_right = (top_left[0]+height, top_left[1]+width)
+            bottom_right = (top_left[0]+cols, top_left[1]+rows)
             """Below is the helper code to print images for the report"""
             im_out = img_in.copy()
             cv2.rectangle(im_out, top_left, bottom_right, 255, 2)
@@ -176,7 +176,7 @@ def compression_runner():
     img_bgr = cv2.imread(INPUT_DIR + 'dog.jpg', cv2.IMREAD_COLOR)
 
     "FILL THIS VALUE OUT"
-    keep = 0.01
+    keep = 0.1
 
     img_compressed, compressed_frequency_img = ps2.compress_image_fft(
         img_bgr, keep)
@@ -202,7 +202,7 @@ def low_pass_filter_runner():
 
 if __name__ == "__main__":
     # part_1a()
-    # part_1b()
-    template_match_test()
-    # compression_runner()
-    # low_pass_filter_runner()
+    part_1b()
+    #template_match_test()
+    #compression_runner()
+    #low_pass_filter_runner()
