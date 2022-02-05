@@ -157,6 +157,12 @@ def template_match_test():
         img_in = cv2.imread("input_images/{}.png".format(img_fl))
         img_template = cv2.imread(
             "input_images/{}".format(img_template_fl))
+        if img_template_fl == 'construction_template.png':
+            lower_white = np.array([220, 220, 220], dtype=np.uint8)
+            upper_white = np.array([255, 255, 255], dtype=np.uint8)
+            mask = cv2.inRange(img_template, lower_white, upper_white) # could also use threshold
+            img_template = cv2.bitwise_not(img_template, img_template, mask)
+            img_template = cv2.resize(img_template,(100,100))
         rows, cols= img_template.shape[:2]
         for method in ("tm_ssd", "tm_nssd", "tm_ccor", "tm_nccor"):
             """ Convert images to gray scale to save computation """
@@ -176,13 +182,14 @@ def compression_runner():
     img_bgr = cv2.imread(INPUT_DIR + 'dog.jpg', cv2.IMREAD_COLOR)
 
     "FILL THIS VALUE OUT"
-    keep = 0.1
+    keep = 0.001
 
     img_compressed, compressed_frequency_img = ps2.compress_image_fft(
         img_bgr, keep)
     compressed_frequency_img = np.fft.fftshift(compressed_frequency_img)
-    cv2.imwrite(OUTPUT_DIR + 'dog_compressed.jpg', img_compressed)
-    cv2.imwrite(OUTPUT_DIR + 'dog_compressed_frequency.jpg',
+    compressed_frequency_img[compressed_frequency_img==0] = 0.000000000001
+    cv2.imwrite(OUTPUT_DIR + 'dog_compressed{}.jpg'.format(keep), img_compressed)
+    cv2.imwrite(OUTPUT_DIR + 'dog_compressed_frequency{}.jpg'.format(keep),
                 20*np.log(np.abs(compressed_frequency_img)))
 
 
@@ -191,18 +198,19 @@ def low_pass_filter_runner():
     img_bgr = np.ndarray.astype(img_bgr, dtype=np.double)
 
     "FILL THIS VALUE OUT"
-    radius = 100
+    radius = 10
 
     img_low_pass, low_pass_frequency_img_mag = ps2.low_pass_filter(
         img_bgr, radius)
-
-    cv2.imwrite(OUTPUT_DIR + 'cat_lpf.jpg', img_low_pass)
-    cv2.imwrite(OUTPUT_DIR + 'cat_lpf_frequency.jpg',20*np.log(np.abs(low_pass_frequency_img_mag)))
+    low_pass_frequency_img_mag = np.fft.fftshift(low_pass_frequency_img_mag)
+    low_pass_frequency_img_mag[low_pass_frequency_img_mag==0] = 0.000000000001 #used to avoid log(0) (undefined)
+    cv2.imwrite(OUTPUT_DIR + 'cat_lpf_{}.jpg'.format(radius), img_low_pass)
+    cv2.imwrite(OUTPUT_DIR + 'cat_lpf_frequency{}.jpg'.format(radius),20*np.log(np.abs(low_pass_frequency_img_mag)))
 
 
 if __name__ == "__main__":
-    # part_1a()
-    part_1b()
-    #template_match_test()
+    #part_1a()
+    #part_1b()
+    template_match_test()
     #compression_runner()
     #low_pass_filter_runner()

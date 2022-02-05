@@ -72,7 +72,7 @@ def construction_sign_detection(img_in):
     result_image = img_copy
     ploygon_x =[]
     ploygon_y = []
-    tolerance = 10
+    #tolerance = 10
     if lines is not None:
        for line in lines:
            x1, y1, x2, y2 = line[0]
@@ -96,7 +96,7 @@ def construction_sign_detection(img_in):
     #cv2.imshow("canny",result_image)
     #cv2.waitKey()
     
-    return np.median(ploygon_x),np.median(ploygon_x)
+    return np.median(ploygon_x),np.median(ploygon_y)
     
         
 
@@ -117,7 +117,8 @@ def template_match(img_orig, img_template, method):
        Suggestion : For loops in python are notoriously slow
        Can we find a vectorized solution to make it faster?
     """
-    img_copy = np.copy(img_orig)
+    img_copy = np.copy(img_orig).astype(np.float32)
+    img_temp_copy =  np.copy(img_template).astype(np.float32)
     #seems gradescope already pass gray scale iamge
     #img_orig_gray = cv2.cvtColor(img_orig,cv2.COLOR_BGR2GRAY)
     #img_temp_gray = cv2.cvtColor(img_template,cv2.COLOR_BGR2GRAY)
@@ -126,7 +127,7 @@ def template_match(img_orig, img_template, method):
             (img_orig.shape[0] - img_template.shape[0] + 1),
             (img_orig.shape[1] - img_template.shape[1] + 1),
         ),
-        float,
+        np.float32,
     )
     top_left = []
     """Once you have populated the result matrix with the similarity metric corresponding to each overlap, return the topmost and leftmost pixel of
@@ -138,8 +139,11 @@ def template_match(img_orig, img_template, method):
         """Your code goes here"""
         for i in range(len(result)):
             for j in range(len(result[1])):
-                result[i,j] = np.sum((img_copy[i:i+rows_temp,j:j+cols_temp]-img_template)**2)
-                
+                #print("{},{}".format(i,j))
+                sliding_winodw = img_copy[i:i+rows_temp,j:j+cols_temp]-img_temp_copy
+                result[i,j] = np.sum(sliding_winodw*sliding_winodw)
+        
+        #res = cv2.matchTemplate(img_copy,img_temp_copy,cv2.TM_SQDIFF)
         min_pixel_value = np.argwhere(result==np.min(result))
         top_left = (min_pixel_value[0][1],min_pixel_value[0][0]) #points in (x,y) while pixel is in (y,x)
         # return top_left
@@ -149,33 +153,45 @@ def template_match(img_orig, img_template, method):
         """Your code goes here"""
         for i in range(len(result)):
             for j in range(len(result[1])):
-                result[i,j] = np.sum((img_copy[i:i+rows_temp,j:j+cols_temp]-img_template)**2)
-                result[i,j] /= np.sqrt(np.sum((img_copy[i:i+rows_temp,j:j+cols_temp])**2 * (img_template)**2))       
+                sliding_winodw = img_copy[i:i+rows_temp,j:j+cols_temp]
+                diff_sq =  (sliding_winodw-img_temp_copy)**2
+                diff_sq_sum = np.sum(diff_sq)
+                normalizer = np.sum(sliding_winodw**2) * np.sum(img_temp_copy**2)
+                result[i,j] = diff_sq_sum/np.sqrt(normalizer)      
+        #res = cv2.matchTemplate(img_orig,img_template,cv2.TM_SQDIFF_NORMED)
         min_pixel_value = np.argwhere(result==np.min(result))
         top_left = (min_pixel_value[0][1],min_pixel_value[0][0]) #points in (x,y) while pixel is in (y,x)
 
     # Cross Correlation
     elif method == "tm_ccor":
         """Your code goes here"""
-        for i in range(len(result)):
-            for j in range(len(result[1])):
-                result[i,j] = np.sum((img_copy[i:i+rows_temp,j:j+cols_temp]*img_template))
+        for i in range(result.shape[0]):
+            for j in range(result.shape[1]):
+                sliding_winodw = img_copy[i:i+rows_temp,j:j+cols_temp]
+                product =  sliding_winodw*img_temp_copy
+                result[i,j] = np.sum(product)
         
-        min_pixel_value = np.argwhere(result==np.min(result))
-        top_left = (min_pixel_value[0][1],min_pixel_value[0][0]) #points in (x,y) while pixel is in (y,x)
-        #max_pixel_value = np.argwhere(result==np.max(result))
-        #top_left = (max_pixel_value[0][1],max_pixel_value[0][0])
+        #res = cv2.matchTemplate(img_orig,img_template,cv2.TM_CCORR)
+        #res = cv2.matchTemplate(img_copy,img_temp_copy,cv2.TM_CCORR)
+        #min_pixel_value = np.argwhere(result==np.min(result))
+        #top_left = (min_pixel_value[0][1],min_pixel_value[0][0]) #points in (x,y) while pixel is in (y,x)
+        max_pixel_value = np.argwhere(result==np.max(result))
+        top_left = (max_pixel_value[0][1],max_pixel_value[0][0])
     # Normalized Cross Correlation
     elif method == "tm_nccor":
         """Your code goes here"""
         for i in range(len(result)):
             for j in range(len(result[1])):
-                result[i,j] = np.sum((img_copy[i:i+rows_temp,j:j+cols_temp]*img_template))
-                result[i,j] /= np.sqrt(np.sum((img_copy[i:i+rows_temp,j:j+cols_temp])**2) * np.sum(img_template**2))
-        min_pixel_value = np.argwhere(result==np.min(result))
-        top_left = (min_pixel_value[0][1],min_pixel_value[0][0])
-        #max_pixel_value = np.argwhere(result==np.max(result))
-        #top_left = (max_pixel_value[0][1],max_pixel_value[0][0])
+                sliding_winodw = img_copy[i:i+rows_temp,j:j+cols_temp]
+                product =  sliding_winodw*img_temp_copy
+                product_sum = np.sum(product)
+                normalizer = np.sum(sliding_winodw**2) * np.sum(img_temp_copy**2)
+                result[i,j] = product_sum/np.sqrt(normalizer)
+        #res = cv2.matchTemplate(img_orig,img_template,cv2.TM_CCORR_NORMED)
+        #min_pixel_value = np.argwhere(result==np.min(result))
+        #top_left = (min_pixel_value[0][1],min_pixel_value[0][0])
+        max_pixel_value = np.argwhere(result==np.max(result))
+        top_left = (max_pixel_value[0][1],max_pixel_value[0][0])
 
     else:
         """Your code goes here"""
@@ -361,7 +377,9 @@ def low_pass_filter(img_bgr, r):
 
     """
     #convert the image to flaot64 to preform the calcualtions 
-    img_compressed = np.copy(img_bgr).astype(np.float64)
+    #img_compressed = np.copy(img_bgr).astype(np.float64) 
+    #converted into double in the experiment
+    img_compressed = img_bgr
     # variable to save the compressed frequence image
     compressed_frequency_img = np.zeros((img_bgr.shape),dtype=np.complex128)
     for i in range(3):#iterate over the 3 channels
@@ -372,7 +390,7 @@ def low_pass_filter(img_bgr, r):
         #shift the spectral freq so that low frequencies are in teh center of the image
         dft_ = np.fft.fftshift(dft_)
         mask = np.zeros(img.shape)
-        mask = cv2.circle(mask, (int(img.shape[0]/2),int(img.shape[1]/2)), r, 1,-1)
+        mask = cv2.circle(mask, (int(img.shape[1]/2),int(img.shape[0]/2)), r, 1,-1)
         img_freq_channel = mask * dft_
         img_freq_channel = np.fft.ifftshift(img_freq_channel)
         img_compressed_channel = np.fft.ifft2(img_freq_channel)
