@@ -38,16 +38,24 @@ def traffic_light_detection(img_in, radii_range):
     circles = circles[circles[:,1].argsort()]
     states = ['red','yellow','green']
     max_intesity = 0 # use value of HSV
+    circles_x =[]
+    circles_y = []
     for i in range(len(circles)):
         #intensity = gray[int(circles[i][1]),int(circles[i][0])]
+        circles_x.append(circles[i][0])
+        circles_y.append(circles[i][1])
         intensity = hsv[int(circles[i][1]),int(circles[i][0])]
         if intensity[-1] > max_intesity: #use the value in HSV
             color_index= i
-            coordinates = circles[i]
+            
+            
+    circles_x = np.array(circles_x)
+    circles_y = np.array(circles_y)
+    traffic_coordinates = (np.median(circles_x),np.median(circles_y))
     # cv2.imshow("canny",canny)
     # cv2.waitKey()
     
-    return coordinates, states[color_index]
+    return traffic_coordinates, states[color_index]
 
 
 def construction_sign_detection(img_in):
