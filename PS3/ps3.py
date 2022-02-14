@@ -6,6 +6,7 @@ import numpy as np
 
 import cv2
 import numpy as np
+from scipy import ndimage
 from typing import Tuple
 
 
@@ -233,29 +234,75 @@ def find_markers(image, template=None):
     """
     out_list = []
     img_copy = np.copy(image)
+    orig_w ,orig_h = image.shape[:-1]
     #median = cv2.medianBlur(img_copy,5)
     #gray = cv2.cvtColor(img_copy, cv2.COLOR_BGR2GRAY)
-    mask = np.zeros_like(template)
-    cv2.circle(mask,(int(mask.shape[1]/2),int(mask.shape[0]/2)),int(mask.shape[1]/2),(1,1,1),-1)
-    mask = np.uint8(mask)
+    templates = []
+    rot = [0,45,90,135]
+    
+    
+    
     w, h = template.shape[:-1]
-    if template == None:
-        print("No template found, returning")
-        return 
+    res = np.zeros((4,orig_w-w+1,orig_h-h+1))
+    for i in range(len(rot)):
+        if rot[i] ==90:
+            temp = ndimage.rotate(template, rot[i])
+        if rot[i] == 45 or rot[i] ==135:
+            temp = ndimage.rotate(template, rot[i])
+            rot_w,rot_h = temp.shape[:2]
+            temp = temp[int((rot_w-w)/2):int((rot_w+w)/2),int((rot_h-h)/2):int((rot_h+h)/2)]
+        else:
+            temp = template
+        
+            
+        mask = np.zeros_like(temp)
+        
+        cv2.circle(mask,(int(mask.shape[1]/2),int(mask.shape[0]/2)),int(mask.shape[1]/2)-1,(1,1,1),-1)
+        #masked_temp = mask*temp
+        #templates.append(masked_temp)
+        #res[i,:,:] = cv2.matchTemplate(img_copy,masked_temp,cv2.TM_SQDIFF_NORMED)
+        res[i,:,:] = cv2.matchTemplate(img_copy,temp,cv2.TM_SQDIFF,mask=mask)
+    
+    #take the min of all the template results
+    res = np.min(res,axis=0)
+    #find the four markers 
+    points = []
+    for i in range(4):
+        marker = np.argwhere(res==np.min(res))[0]
+        points.append(marker)
+        #remove all the neighoring points (instead of non max supersion)
+        res[int(marker[0]-w/2):int(marker[0]+w/2),int(marker[1]-h/2):int(marker[1]+h/2) ] = np.inf
+    
+    #sort the markers [top-left, bottom-left, top-right, bottom-right]
+    #change the top left corner to the center of the marker 
+    points = sorted(points, key= lambda k:k[1].min()) # min in x
+    if points[0][0] <= points[1][0]:
+        out_list.append((int(points[0][1]+h/2),int(points[0][0]+w/2)))
+        out_list.append((int(points[1][1]+h/2),int(points[1][0]+w/2)))
     else:
-        masked_temp = mask*template
-        res = cv2.matchTemplate(img_copy,masked_temp,cv2.TM_SQDIFF_NORMED)
-        #res = cv2.matchTemplate(img_copy,template,cv2.TM_SQDIFF,mask=mask)
-        #res = cv2.matchTemplate(img_copy,template,cv2.TM_SQDIFF_NORMED)
-        threshold = 0.95
-        loc = np.where( res >= threshold)
-        #matches = np.argwhere(res >= threshold)
-        for pt in zip(*loc[::-1]):
-            cv2.rectangle(img_copy, pt, (pt[0] + w, pt[1] + h), (0,0,255), 2)
+        out_list.append((int(points[1][1]+h/2),int(points[1][0]+w/2)))
+        out_list.append((int(points[0][1]+h/2),int(points[0][0]+w/2)))
+    
+    #remove the first 2 elements that they are already added
+    points.remove(points[0]) 
+    points.remove(points[0])
+    #sort them by maximum rows (y)
+    points = sorted(points, key= lambda k:k[0].min()) # min in y
+    out_list.append((int(points[0][1]+h/2),int(points[0][0]+w/2)))
+    out_list.append((int(points[1][1]+h/2),int(points[1][0]+w/2)))
+    # if points[2][0] <= points[2][0]:
+    #     out_list.append((int(points[2][1]+h/2),int(points[2][0]+w/2)))
+    #     out_list.append((int(points[3][1]+h/2),int(points[3][0]+w/2)))
+    # else:
+    #     out_list.append((int(points[3][1]+h/2),int(points[3][0]+w/2)))
+    #     out_list.append((int(points[2][1]+h/2),int(points[2][0]+w/2)))
+        
+            
+          
         
     return out_list
 
-def 
+
 
 def draw_box(image, markers, thickness=1):
     """Draw 1-pixel width lines connecting box markers.
@@ -270,8 +317,11 @@ def draw_box(image, markers, thickness=1):
     Returns:
         numpy.array: image with lines drawn.
     """
-
-    raise NotImplementedError
+    out_image = np.copy(image)
+    cv2.line(out_image, markers[0], markers[1], (0,255,0),thickness)
+    cv2.line(out_image, markers[0], markers[2], (0,255,0),thickness)
+    cv2.line(out_image, markers[3], markers[2], (0,255,0),thickness)
+    cv2.line(out_image, markers[3], markers[1], (0,255,0),thickness)
     return out_image
 
 

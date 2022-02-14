@@ -136,7 +136,7 @@ def part_1():
         for marker in marker_positions:
             mark_location(scene, marker)
 
-        # save_image(img_out, scene)
+        save_image(img_out, scene)
 
 
 def part_2():
@@ -161,7 +161,7 @@ def part_2():
         markers = ps3.find_markers(scene, template)
         image_with_box = ps3.draw_box(scene, markers, 3)
 
-        # save_image(img_out, image_with_box)
+        save_image(img_out, image_with_box)
 
 
 def part_3():
@@ -337,21 +337,21 @@ if __name__ == '__main__':
 
     part_1()
     part_2()
-    part_3()
-    part_4_a()
-    part_4_b()
-    part_5_a()
-    part_5_b()
+#     part_3()
+#     part_4_a()
+#     part_4_b()
+#     part_5_a()
+#     part_5_b()
     
-    path1 = os.path.join(IMG_DIR, "everest1.jpg")
-    path2 = os.path.join(IMG_DIR, "everest2.jpg")
-#     part_6()  # use this when you generate p1.npy and p2.npy
+#     path1 = os.path.join(IMG_DIR, "everest1.jpg")
+#     path2 = os.path.join(IMG_DIR, "everest2.jpg")
+# #     part_6()  # use this when you generate p1.npy and p2.npy
 
-    #Part 7
-    homography_parameters = part_7()
+#     #Part 7
+#     homography_parameters = part_7()
     
-    #Part 9
-    part_9_a(homography_parameters,path1,path2)
+#     #Part 9
+#     part_9_a(homography_parameters,path1,path2)
     
 
 
