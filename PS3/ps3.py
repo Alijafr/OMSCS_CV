@@ -179,7 +179,7 @@ def get_corners_list(image):
             in the order [top-left, bottom-left, top-right, bottom-right]
     """
     height, width = image.shape[:2]
-    corners = [(0,0),(0,height),(width,0),(width,height)]
+    corners = [(0,0),(0,height-1),(width-1,0),(width-1,height-1)]
 
     return corners
 
@@ -265,11 +265,12 @@ def find_markers(image, template=None):
     res = np.min(res,axis=0)
     #find the four markers 
     points = []
+    padding_factor = 1.5 # make sure that we are not chossing the same marker twice
     for i in range(4):
         marker = np.argwhere(res==np.min(res))[0]
         points.append(marker)
         #remove all the neighoring points (instead of non max supersion)
-        res[int(marker[0]-w/2):int(marker[0]+w/2),int(marker[1]-h/2):int(marker[1]+h/2) ] = np.inf
+        res[int(marker[0]-padding_factor*w):int(marker[0]+padding_factor*w),int(marker[1]-padding_factor*h):int(marker[1]+padding_factor*h) ] = np.inf
     
     #sort the markers [top-left, bottom-left, top-right, bottom-right]
     #change the top left corner to the center of the marker 
@@ -336,10 +337,45 @@ def project_imageA_onto_imageB(imageA, imageB, homography):
     Returns:
         numpy.array: combined image
     """
-
+    wall = np.copy(imageB)
+    scene = np.copy(imageA)
+    src_points = get_corners_list(scene)
+    #recover the markers using the homography and src_points 
+    homog_src = np.vstack((np.array(src_points).T,np.array([[1,1,1,1]])))
+    markers = homography@homog_src
+    markers = (markers/markers[-1])[:2,:].T.astype(int) #remove the ones and transpose it back --> each row is a point 
+    
+    #do np.fillpoly to identify the area to place imageB
+    
+    #change the markers orders for cv2.fillpoly 
+    m = markers[[0,2,3,1],:]
+    mask = np.zeros_like(wall[:,:,1])
+    cv2.fillPoly(mask,[m],255)
+    indices = np.where(mask==255) #ignore the channel
+    dst_points = np.vstack((indices[1],indices[0],np.ones((1,len(indices[0]))))) # make it x, y , 1
+    
+    H_inv = np.linalg.inv(homography)
+    h_scene, w_scene = scene.shape[:2]
+    
+    src_points_ = np.dot(H_inv,dst_points)
+    src_points_ = src_points_/src_points_[-1]
+    
+    #round to the nearst integer 
+    src_points_ = np.rint(np.abs(src_points_)).astype(int)
+    #change from x,y to rows and cols, and removes the ones 
+    src_points_ = src_points_[[1,0],:]
+    #just make sure that there is no index out of range because of the rint
+    src_points_[0,np.where(src_points_[0] >=scene.shape[0])] = scene.shape[0]-1 #if the index is the height, make it height-1 (index starts from zero)
+    src_points_[1,np.where(src_points_[1] >=scene.shape[1])] = scene.shape[1]-1
+    
+    #clean up the dst_points
+    dst_points = np.vstack((indices[0],indices[1])).astype(int) # make back to rows and cols and integers 
     out_image = imageB.copy()
+    out_image[dst_points[0],dst_points[1]] = scene[src_points_[0],src_points_[1]]
+    
 
-    raise NotImplementedError
+
+    
     return out_image
 
 
@@ -359,7 +395,7 @@ def find_four_point_transform(srcPoints, dstPoints):
     Returns:
         numpy.array: 3 by 3 homography matrix of floating point values
     """
-    #copied for opencv implmentation
+    #copied from opencv implmentation
     """
     /* Calculates coefficients of perspective transformation
      * which maps (xi,yi) to (ui,vi), (i=1,2,3,4):
@@ -373,14 +409,14 @@ def find_four_point_transform(srcPoints, dstPoints):
      *      c20*xi + c21*yi + c22
      *
      * Coefficients are calculated by solving linear system:
-     * / x0 y0  1  0  0  0 -x0*u0 -y0*u0 \ /c00\ /u0\
+     * / x0 y0  1  0  0  0 -x0*u0 -y0*u0 \ /c00\ |u0|
      * | x1 y1  1  0  0  0 -x1*u1 -y1*u1 | |c01| |u1|
      * | x2 y2  1  0  0  0 -x2*u2 -y2*u2 | |c02| |u2|
      * | x3 y3  1  0  0  0 -x3*u3 -y3*u3 |.|c10|=|u3|,
      * |  0  0  0 x0 y0  1 -x0*v0 -y0*v0 | |c11| |v0|
      * |  0  0  0 x1 y1  1 -x1*v1 -y1*v1 | |c12| |v1|
      * |  0  0  0 x2 y2  1 -x2*v2 -y2*v2 | |c20| |v2|
-     * \  0  0  0 x3 y3  1 -x3*v3 -y3*v3 / \c21/ \v3/
+     * \  0  0  0 x3 y3  1 -x3*v3 -y3*v3 / \c21/ |v3|
      *
      * where:
      *   cij - matrix coefficients, c22 = 1

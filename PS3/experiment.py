@@ -191,7 +191,7 @@ def part_3():
         projected_img = ps3.project_imageA_onto_imageB(advert, scene,
                                                        homography)
 
-        # save_image(img_out, projected_img)
+        save_image(img_out, projected_img)
 
 
 def part_4_a():
@@ -337,7 +337,7 @@ if __name__ == '__main__':
 
     part_1()
     part_2()
-#     part_3()
+    part_3()
 #     part_4_a()
 #     part_4_b()
 #     part_5_a()
