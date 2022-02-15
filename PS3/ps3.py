@@ -256,6 +256,7 @@ def find_markers(image, template=None):
         mask = np.zeros_like(temp)
         
         cv2.circle(mask,(int(mask.shape[1]/2),int(mask.shape[0]/2)),int(mask.shape[1]/2)-1,(1,1,1),-1)
+        mask = mask.astype(int)
         #masked_temp = mask*temp
         #templates.append(masked_temp)
         #res[i,:,:] = cv2.matchTemplate(img_copy,masked_temp,cv2.TM_SQDIFF_NORMED)
@@ -265,7 +266,7 @@ def find_markers(image, template=None):
     res = np.min(res,axis=0)
     #find the four markers 
     points = []
-    padding_factor = 1.5 # make sure that we are not chossing the same marker twice
+    padding_factor = 0.5 # make sure that we are not chossing the same marker twice
     for i in range(4):
         marker = np.argwhere(res==np.min(res))[0]
         points.append(marker)
