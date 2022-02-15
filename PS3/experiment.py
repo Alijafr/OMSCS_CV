@@ -53,6 +53,8 @@ def helper_for_part_4_and_5(video_name, fps, frame_ids, output_prefix,
         markers = ps3.find_markers(image, template)
 
         if is_part5:
+            # if len(set(markers))== 4: # make sure there are 4 unique markers 
+            #     print(markers)
             homography = ps3.find_four_point_transform(src_points, markers)
             image = ps3.project_imageA_onto_imageB(advert, image, homography)
 
@@ -91,7 +93,7 @@ def mp4_video_writer(filename, frame_size, fps=20):
     Returns:
         VideoWriter: Instance of VideoWriter ready for writing
     """
-    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     return cv2.VideoWriter(filename, fourcc, fps, frame_size)
 
 
@@ -335,13 +337,13 @@ if __name__ == '__main__':
     print("--- Problem Set 3 ---")
     # Comment out the sections you want to skip
 
-    part_1()
-    part_2()
-    part_3()
-#     part_4_a()
-#     part_4_b()
-#     part_5_a()
-#     part_5_b()
+    # part_1()
+    # part_2()
+    # part_3()  
+    # part_4_a()
+    # part_4_b()
+    part_5_a()
+    part_5_b()
     
 #     path1 = os.path.join(IMG_DIR, "everest1.jpg")
 #     path2 = os.path.join(IMG_DIR, "everest2.jpg")
