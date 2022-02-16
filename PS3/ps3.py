@@ -266,12 +266,12 @@ def find_markers(image, template=None):
     res = np.min(res,axis=0)
     #find the four markers 
     points = []
-    padding_factor = 0.5 # make sure that we are not chossing the same marker twice
+    padding_factor = 2.0 # make sure that we are not chossing the same marker twice
     for i in range(4):
         marker = np.argwhere(res==np.min(res))[0]
         points.append(marker)
         #remove all the neighoring points (instead of non max supersion)
-        res[int(marker[0]-padding_factor*w):int(marker[0]+padding_factor*w),int(marker[1]-padding_factor*h):int(marker[1]+padding_factor*h) ] = np.inf
+        res[np.clip(int(marker[0]-padding_factor*w),0,res.shape[0]-1):np.clip(int(marker[0]+padding_factor*w),1,res.shape[0]),np.clip(int(marker[1]-padding_factor*h),0,res.shape[1]-1):np.clip(int(marker[1]+padding_factor*h),1,res.shape[1]) ] = np.inf
     
     #sort the markers [top-left, bottom-left, top-right, bottom-right]
     #change the top left corner to the center of the marker 
@@ -423,32 +423,44 @@ def find_four_point_transform(srcPoints, dstPoints):
      *   cij - matrix coefficients, c22 = 1
      */
     """
-    x0,y0 = srcPoints[0]
-    x1,y1 = srcPoints[1]
-    x2,y2 = srcPoints[2]
-    x3,y3 = srcPoints[3]
-    u0,v0 = dstPoints[0]
-    u1,v1 = dstPoints[1]
-    u2,v2 = dstPoints[2]
-    u3,v3 = dstPoints[3]
-    A = np.array([[x0, y0,1,0,0,0,-x0*u0, -y0*u0],
-                  [x1, y1,1,0,0,0,-x1*u1, -y1*u1],
-                  [x2, y2,1,0,0,0,-x2*u2, -y2*u2],
-                  [x3, y3,1,0,0,0,-x3*u3, -y3*u3],
-                  [0, 0,0,x0,y0,1,-x0*v0, -y0*v0],
-                  [0, 0,0,x1,y1,1,-x1*v1, -y1*v1],
-                  [0, 0,0,x2,y2,1,-x2*v2, -y2*v2],
-                  [0, 0,0,x3,y3,1,-x3*v3, -y3*v3], 
-                  ])
-    X = np.array([[u0],
-                  [u1],
-                  [u2],
-                  [u3],
-                  [v0],
-                  [v1],
-                  [v2],
-                  [v3]])
-    M = np.linalg.inv(A)@X
+    # x0,y0 = srcPoints[0]
+    # x1,y1 = srcPoints[1]
+    # x2,y2 = srcPoints[2]
+    # x3,y3 = srcPoints[3]
+    # u0,v0 = dstPoints[0]
+    # u1,v1 = dstPoints[1]
+    # u2,v2 = dstPoints[2]
+    # u3,v3 = dstPoints[3]
+    # A = np.array([[x0, y0,1,0,0,0,-x0*u0, -y0*u0],
+    #               [x1, y1,1,0,0,0,-x1*u1, -y1*u1],
+    #               [x2, y2,1,0,0,0,-x2*u2, -y2*u2],
+    #               [x3, y3,1,0,0,0,-x3*u3, -y3*u3],
+    #               [0, 0,0,x0,y0,1,-x0*v0, -y0*v0],
+    #               [0, 0,0,x1,y1,1,-x1*v1, -y1*v1],
+    #               [0, 0,0,x2,y2,1,-x2*v2, -y2*v2],
+    #               [0, 0,0,x3,y3,1,-x3*v3, -y3*v3], 
+    #               ])
+    # X = np.array([[u0],
+    #               [u1],
+    #               [u2],
+    #               [u3],
+    #               [v0],
+    #               [v1],
+    #               [v2],
+    #               [v3]])
+    # M = np.linalg.inv(A)@X
+    A = np.zeros((2*len(srcPoints),8))
+    X = np.zeros((2*len(srcPoints),1))
+    eq_2_index = len(srcPoints)
+    for i in range(len(srcPoints)):
+        x,y = srcPoints[i]
+        u,v = dstPoints[i]
+        A[i,:] = np.array([[x, y,1,0,0,0,-x*u, -y*u]])
+        X[i,:] = np.array([[u]])
+        A[i+eq_2_index,:] = np.array([[0, 0,0,x,y,1,-x*v, -y*v]])
+        X[i+eq_2_index,:] = np.array([[v]])
+    #calculate the least square 
+    M = np.linalg.lstsq(A,X)[0]
     #append M by 1 --> c22 = 1, then reshape to 3x3
     homography = np.vstack((M,np.array([[1]]))).reshape(3,3)
     return homography
