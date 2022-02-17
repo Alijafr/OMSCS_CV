@@ -460,7 +460,7 @@ def find_four_point_transform(srcPoints, dstPoints):
         A[i+eq_2_index,:] = np.array([[0, 0,0,x,y,1,-x*v, -y*v]])
         X[i+eq_2_index,:] = np.array([[v]])
     #calculate the least square 
-    M = np.linalg.lstsq(A,X)[0]
+    M = np.linalg.lstsq(A,X,rcond=None)[0]
     #append M by 1 --> c22 = 1, then reshape to 3x3
     homography = np.vstack((M,np.array([[1]]))).reshape(3,3)
     return homography
@@ -640,9 +640,46 @@ class Image_Mosaic(object):
         Output -
         :return: Inverse Warped Resulting Image
         '''
-
-
-        raise NotImplementedError
+        warped_img = np.zeros((im_src.shape[0],2*im_src.shape[1],3))
+        src_points = get_corners_list(im_src)
+        
+        homog_src = np.vstack((np.array(src_points).T,np.array([[1,1,1,1]])))
+        
+        dst_corners = H@homog_src
+        dst_corners = (dst_corners/dst_corners[-1])[:2,:].T.astype(int) #remove the ones and transpose it 
+        
+        #clip the corners that are out of the src bound 
+        #corners are in x,y  after transposing --> cols, then rows hence the im_src.shape[1] with col 0 
+        dst_corners[:,0]=np.clip(dst_corners[:,0],0,2*im_src.shape[1])
+        dst_corners[:,1]=np.clip(dst_corners[:,1],0,im_src.shape[0])
+        
+        #change the markers orders for cv2.fillpoly 
+        m = dst_corners[[0,2,3,1],:]
+        mask = np.zeros_like(warped_img[:,:,1])
+        cv2.fillPoly(mask,[m],255)
+        indices = np.where(mask==255) #ignore the channel
+        dst_points = np.vstack((indices[1],indices[0],np.ones((1,len(indices[0]))))) # make it x, y , 1
+        
+        H_inv = np.linalg.inv(H)
+        
+        src_points_ = np.dot(H_inv,dst_points)
+        src_points_ = src_points_/src_points_[-1]
+        
+        
+        #round to the nearst integer 
+        src_points_ = np.rint(np.abs(src_points_)).astype(int)
+        #change from x,y to rows and cols, and removes the ones 
+        src_points_ = src_points_[[1,0],:]
+        
+        
+        
+        #just make sure that there is no index out of range because of the rint
+        src_points_[0,np.where(src_points_[0] >=im_src.shape[0])] = im_src.shape[0]-1 #if the index is the height, make it height-1 (index starts from zero)
+        src_points_[1,np.where(src_points_[1] >=im_src.shape[1])] = im_src.shape[1]-1
+        
+        #clean up the dst_points
+        dst_points = np.vstack((indices[0],indices[1])).astype(int) # make back to rows and cols and integers 
+        warped_img[dst_points[0],dst_points[1]] = im_dst[src_points_[0],src_points_[1]]
 
         return warped_img
 
