@@ -255,7 +255,8 @@ def find_markers(image, template=None):
             
         mask = np.zeros_like(temp)
         
-        cv2.circle(mask,(int(mask.shape[1]/2),int(mask.shape[0]/2)),int(mask.shape[1]/2)-1,(1,1,1),-1)
+        # cv2.circle(mask,(int(mask.shape[1]/2),int(mask.shape[0]/2)),int(mask.shape[1]/2)-1,(1,1,1),-1)
+        cv2.circle(mask,(int(mask.shape[1]/2),int(mask.shape[0]/2)),int(w/2)-7,(255,255,255),-1)
         mask = mask.astype(int)
         #masked_temp = mask*temp
         #templates.append(masked_temp)
@@ -373,9 +374,6 @@ def project_imageA_onto_imageB(imageA, imageB, homography):
     dst_points = np.vstack((indices[0],indices[1])).astype(int) # make back to rows and cols and integers 
     out_image = imageB.copy()
     out_image[dst_points[0],dst_points[1]] = scene[src_points_[0],src_points_[1]]
-    
-
-
     
     return out_image
 
@@ -520,8 +518,10 @@ class Automatic_Corner_Detection(object):
             :return Iy: Array of shape (M,N) representing partial derivative of image
                     in y-direction
         '''
-
-        raise NotImplementedError
+        # image_bw = cv2.copyMakeBorder(image_bw, 1, 1, 1, 1, cv2.BORDER_CONSTANT, None, value = 0)
+        Ix = cv2.filter2D(image_bw, -1, self.SOBEL_X,borderType=cv2.BORDER_CONSTANT)
+        Iy = cv2.filter2D(image_bw, -1, self.SOBEL_Y,borderType=cv2.BORDER_CONSTANT)
+        
 
         return Ix, Iy
 
@@ -542,10 +542,17 @@ class Automatic_Corner_Detection(object):
             :return sxsy: np array of shape (M,N) containing the second moment in the x then the
                     y direction
         """
-
-        sx2, sy2, sxsy = None, None, None
-
-        raise NotImplementedError
+        Ix, Iy = self.gradients(image_bw)
+        Ixx,Ixy = self.gradients(Ix)
+        Iyy,Iyx = self.gradients(Iy)
+        # padding = int((ksize-1)/2)
+        # Ixx =cv2.copyMakeBorder(Ixx, padding, padding, padding, padding, cv2.BORDER_CONSTANT, None, value = 0)
+        # Iyy =cv2.copyMakeBorder(Iyy, padding, padding, padding, padding, cv2.BORDER_CONSTANT, None, value = 0)
+        # Ixy =cv2.copyMakeBorder(Ixy, padding, padding, padding, padding, cv2.BORDER_CONSTANT, None, value = 0)
+        
+        sx2 = cv2.GaussianBlur(Ixx,(ksize,ksize),sigma,borderType=cv2.BORDER_CONSTANT)
+        sy2 = cv2.GaussianBlur(Iyy,(ksize,ksize),sigma,borderType=cv2.BORDER_CONSTANT)
+        sxsy = cv2.GaussianBlur(Ixy,(ksize,ksize),sigma,borderType=cv2.BORDER_CONSTANT)
 
         return sx2, sy2, sxsy
 
@@ -574,8 +581,17 @@ class Automatic_Corner_Detection(object):
             """
 
 
-        raise NotImplementedError
-
+        S_xx, S_yy, S_xy = self.second_moments(image_bw,ksize,sigma)
+        R = np.zeros_like(image_bw).astype(float)
+        M = np.array([[S_xx,S_xy],
+                      [S_xy,S_yy]])
+        for i in range(image_bw.shape[0]):
+            for j in range(image_bw.shape[1]):
+                m_pixel = M[:,:,i,j]
+                R[i,j] = np.linalg.det(m_pixel) - alpha*(np.trace(m_pixel))**2 
+        
+        #normalize R
+        R = (R-R.min())/(R.max()-R.min())
         return R
 
 
@@ -599,11 +615,29 @@ class Automatic_Corner_Detection(object):
             x: np array of shape (k,) containing x-coordinates of interest points
             y: np array of shape (k,) containing y-coordinates of interest points
         """
-
-
-
-        raise NotImplementedError
-
+        w,h = R.shape
+        median = np.median(R)
+        R[R<median] = 0.0
+        padding = int((ksize-1)/2)
+        R_padded = cv2.copyMakeBorder(R, padding, padding, padding, padding, cv2.BORDER_CONSTANT, None, value = 0)
+        
+        for i in range(w):
+            for j in range(h):
+                #do maxpool for each pixel
+                window =R_padded[i:i+ksize,j:j+ksize]
+                window[window!=window.max()] = 0.0
+                R_padded[i:i+ksize,j:j+ksize] = window
+        #remove the padding now
+        R = R_padded[padding:w-padding,padding:h-padding]
+        x = np.zeros(k).astype(int)
+        y = np.zeros(k).astype(int)
+        R_copy = np.copy(R)
+        for i in range(k):
+            index = np.where(R_copy ==R_copy.max())
+            y[i] = index[0][0]
+            x[i] = index[1][0]
+            R_copy[y[i],x[i]] = 0.0
+            
         return x, y
 
 
@@ -618,8 +652,8 @@ class Automatic_Corner_Detection(object):
             :return y: np array of shape (p,) containing y-coordinates of interest points
             """
 
-        raise NotImplementedError
-
+        R = self.harris_response_map(image_bw)
+        x1,y1 = self.nms_maxpool(R,k,ksize=7)
         return x1, y1
 
 
@@ -640,46 +674,46 @@ class Image_Mosaic(object):
         Output -
         :return: Inverse Warped Resulting Image
         '''
-        warped_img = np.zeros((im_src.shape[0],2*im_src.shape[1],3))
-        src_points = get_corners_list(im_src)
+        warped_img = np.zeros((im_src.shape[0],2*im_src.shape[1],3)).astype(int)
+        dst_corners = get_corners_list(im_dst)
         
-        homog_src = np.vstack((np.array(src_points).T,np.array([[1,1,1,1]])))
+        homog_dst = np.vstack((np.array(dst_corners).T,np.array([[1,1,1,1]])))
         
-        dst_corners = H@homog_src
-        dst_corners = (dst_corners/dst_corners[-1])[:2,:].T.astype(int) #remove the ones and transpose it 
+        src_corners = H@homog_dst # corners projected on im_src 
+        src_corners = (src_corners/src_corners[-1])[:2,:].T.astype(int) #remove the ones and transpose it 
         
         #clip the corners that are out of the src bound 
         #corners are in x,y  after transposing --> cols, then rows hence the im_src.shape[1] with col 0 
-        dst_corners[:,0]=np.clip(dst_corners[:,0],0,2*im_src.shape[1])
-        dst_corners[:,1]=np.clip(dst_corners[:,1],0,im_src.shape[0])
+        src_corners[:,0]=np.clip(src_corners[:,0],0,2*im_src.shape[1])
+        src_corners[:,1]=np.clip(src_corners[:,1],0,im_src.shape[0])
         
+        dst_corners_in_src = src_corners
         #change the markers orders for cv2.fillpoly 
-        m = dst_corners[[0,2,3,1],:]
+        m = dst_corners_in_src[[0,2,3,1],:]
         mask = np.zeros_like(warped_img[:,:,1])
         cv2.fillPoly(mask,[m],255)
         indices = np.where(mask==255) #ignore the channel
-        dst_points = np.vstack((indices[1],indices[0],np.ones((1,len(indices[0]))))) # make it x, y , 1
+        dst_points_in_src = np.vstack((indices[1],indices[0],np.ones((1,len(indices[0]))))) # make it x, y , 1
         
         H_inv = np.linalg.inv(H)
         
-        src_points_ = np.dot(H_inv,dst_points)
-        src_points_ = src_points_/src_points_[-1]
+        dst_points_to_src = np.dot(H_inv,dst_points_in_src)
+        dst_points_to_src = dst_points_to_src/dst_points_to_src[-1]
         
         
         #round to the nearst integer 
-        src_points_ = np.rint(np.abs(src_points_)).astype(int)
+        dst_points_to_src_NN = np.rint(np.abs(dst_points_to_src)).astype(int) #nearest neighbour
         #change from x,y to rows and cols, and removes the ones 
-        src_points_ = src_points_[[1,0],:]
-        
-        
+        dst_points_to_src_NN = dst_points_to_src_NN[[1,0],:]
+              
         
         #just make sure that there is no index out of range because of the rint
-        src_points_[0,np.where(src_points_[0] >=im_src.shape[0])] = im_src.shape[0]-1 #if the index is the height, make it height-1 (index starts from zero)
-        src_points_[1,np.where(src_points_[1] >=im_src.shape[1])] = im_src.shape[1]-1
+        dst_points_to_src_NN[0,np.where(dst_points_to_src_NN[0] >=im_dst.shape[0])] = im_src.shape[0]-1 #if the index is the height, make it height-1 (index starts from zero)
+        dst_points_to_src_NN[1,np.where(dst_points_to_src_NN[1] >=im_dst.shape[1])] = im_src.shape[1]-1
         
         #clean up the dst_points
         dst_points = np.vstack((indices[0],indices[1])).astype(int) # make back to rows and cols and integers 
-        warped_img[dst_points[0],dst_points[1]] = im_dst[src_points_[0],src_points_[1]]
+        warped_img[dst_points[0],dst_points[1]] = im_dst[dst_points_to_src_NN[0],dst_points_to_src_NN[1]]
 
         return warped_img
 
@@ -692,9 +726,19 @@ class Image_Mosaic(object):
         Output -
         :return: Output Image Mosiac
         '''
+        im_mos_out = np.copy(img_warped)
+        indices = np.where(img_warped==0)[:2] #ignore the channel
+        #clap the indices to the shape of the img_src 
+        indices_warp = np.vstack((indices[0],indices[1])).astype(int) # convert to numpy array instead of tuple 
+        indices_src = np.copy(indices_warp)
+        indices_src[0] = np.clip(indices_src[0], 0, img_src.shape[0]-1)
+        indices_src[1] = np.clip(indices_src[1], 0, img_src.shape[1]-1)
+        
+        im_mos_out[indices_warp[0],indices_warp[1]] = img_src[indices_src[0],indices_src[1]]
+        
 
 
-        raise NotImplementedError
+        
 
         return im_mos_out
 

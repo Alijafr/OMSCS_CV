@@ -339,21 +339,21 @@ if __name__ == '__main__':
 
     # part_1()
     # part_2()
-    part_3()  
-    # part_4_a()
-    # part_4_b()
-    # part_5_a()
-    # part_5_b()
+    #part_3()  
+    #part_4_a()
+    #part_4_b()
+    part_5_a()
+    part_5_b()
     
     # path1 = os.path.join(IMG_DIR, "everest1.jpg")
     # path2 = os.path.join(IMG_DIR, "everest2.jpg")
-    # part_6(path1,path2)  # use this when you generate p1.npy and p2.npy
+    # # part_6(path1,path2)  # use this when you generate p1.npy and p2.npy
 
-    #Part 7
-    #homography_parameters = part_7()
+    # #Part 7
+    # homography_parameters = part_7()
     
-#     #Part 9
-#     part_9_a(homography_parameters,path1,path2)
+    # #Part 9
+    # part_9_a(homography_parameters,path1,path2)
     
 
 
