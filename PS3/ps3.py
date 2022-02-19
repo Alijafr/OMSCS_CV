@@ -249,6 +249,9 @@ def find_markers(image, template=None):
             temp = ndimage.rotate(template, rot[i])
             rot_w,rot_h = temp.shape[:2]
             temp = temp[int((rot_w-w)/2):int((rot_w+w)/2),int((rot_h-h)/2):int((rot_h+h)/2)]
+            #threshold, the rotation change distort the value of the pixels a little bit
+            temp[temp>100] = 255
+            temp[temp<100] = 0
         else:
             temp = template
         
@@ -319,10 +322,10 @@ def draw_box(image, markers, thickness=1):
         numpy.array: image with lines drawn.
     """
     out_image = np.copy(image)
-    cv2.line(out_image, markers[0], markers[1], (0,0,255),thickness)
-    cv2.line(out_image, markers[0], markers[2], (0,0,255),thickness)
-    cv2.line(out_image, markers[3], markers[2], (0,0,255),thickness)
-    cv2.line(out_image, markers[3], markers[1], (0,0,255),thickness)
+    cv2.line(out_image, markers[0], markers[1], (255,0,0),thickness)
+    cv2.line(out_image, markers[0], markers[2], (255,0,0),thickness)
+    cv2.line(out_image, markers[3], markers[2], (255,0,0),thickness)
+    cv2.line(out_image, markers[3], markers[1], (255,0,0),thickness)
     return out_image
 
 
@@ -397,29 +400,29 @@ def find_four_point_transform(srcPoints, dstPoints):
     #copied from opencv implmentation
     """
     /* Calculates coefficients of perspective transformation
-     * which maps (xi,yi) to (ui,vi), (i=1,2,3,4):
-     *
-     *      c00*xi + c01*yi + c02
-     * ui = ---------------------
-     *      c20*xi + c21*yi + c22
-     *
-     *      c10*xi + c11*yi + c12
-     * vi = ---------------------
-     *      c20*xi + c21*yi + c22
-     *
-     * Coefficients are calculated by solving linear system:
-     * / x0 y0  1  0  0  0 -x0*u0 -y0*u0 \ /c00\ |u0|
-     * | x1 y1  1  0  0  0 -x1*u1 -y1*u1 | |c01| |u1|
-     * | x2 y2  1  0  0  0 -x2*u2 -y2*u2 | |c02| |u2|
-     * | x3 y3  1  0  0  0 -x3*u3 -y3*u3 |.|c10|=|u3|,
-     * |  0  0  0 x0 y0  1 -x0*v0 -y0*v0 | |c11| |v0|
-     * |  0  0  0 x1 y1  1 -x1*v1 -y1*v1 | |c12| |v1|
-     * |  0  0  0 x2 y2  1 -x2*v2 -y2*v2 | |c20| |v2|
-     * \  0  0  0 x3 y3  1 -x3*v3 -y3*v3 / \c21/ |v3|
-     *
-     * where:
-     *   cij - matrix coefficients, c22 = 1
-     */
+      * which maps (xi,yi) to (ui,vi), (i=1,2,3,4):
+      *
+      *      c00*xi + c01*yi + c02
+      * ui = ---------------------
+      *      c20*xi + c21*yi + c22
+      *
+      *      c10*xi + c11*yi + c12
+      * vi = ---------------------
+      *      c20*xi + c21*yi + c22
+      *
+      * Coefficients are calculated by solving linear system:
+      * / x0 y0  1  0  0  0 -x0*u0 -y0*u0 \ /c00\ |u0|
+      * | x1 y1  1  0  0  0 -x1*u1 -y1*u1 | |c01| |u1|
+      * | x2 y2  1  0  0  0 -x2*u2 -y2*u2 | |c02| |u2|
+      * | x3 y3  1  0  0  0 -x3*u3 -y3*u3 |.|c10|=|u3|,
+      * |  0  0  0 x0 y0  1 -x0*v0 -y0*v0 | |c11| |v0|
+      * |  0  0  0 x1 y1  1 -x1*v1 -y1*v1 | |c12| |v1|
+      * |  0  0  0 x2 y2  1 -x2*v2 -y2*v2 | |c20| |v2|
+      * \  0  0  0 x3 y3  1 -x3*v3 -y3*v3 / \c21/ |v3|
+      *
+      * where:
+      *   cij - matrix coefficients, c22 = 1
+      */
     """
     # x0,y0 = srcPoints[0]
     # x1,y1 = srcPoints[1]
@@ -519,10 +522,11 @@ class Automatic_Corner_Detection(object):
                     in y-direction
         '''
         #image_bw = cv2.copyMakeBorder(image_bw, 1, 1, 1, 1, cv2.BORDER_CONSTANT, None, value = 0)
-        #Ix1 = cv2.filter2D(image_bw, - 1, self.SOBEL_X,borderType=cv2.BORDER_CONSTANT)
-        #Iy1 = cv2.filter2D(image_bw, -1, self.SOBEL_Y,borderType=cv2.BORDER_CONSTANT)
-        Ix = ndimage.convolve(image_bw, self.SOBEL_X, mode='constant', cval=0.0)
-        Iy = ndimage.convolve(image_bw, self.SOBEL_Y, mode='constant', cval=0.0)
+        gray = np.copy(image_bw).astype(np.float64)
+        Ix = cv2.filter2D(gray, - 1, self.SOBEL_X,borderType=cv2.BORDER_CONSTANT)
+        Iy = cv2.filter2D(gray, -1, self.SOBEL_Y,borderType=cv2.BORDER_CONSTANT)
+        # Ix = -1*ndimage.convolve(image_bw, self.SOBEL_X, mode='constant', cval=0.0)
+        # Iy = -1*ndimage.convolve(image_bw, self.SOBEL_Y, mode='constant', cval=0.0)
         return Ix, Iy
 
 
@@ -543,13 +547,18 @@ class Automatic_Corner_Detection(object):
                     y direction
         """
         Ix, Iy = self.gradients(image_bw)
-        Ixx,Ixy = self.gradients(Ix)
-        Iyy,Iyx = self.gradients(Iy)
+        Ixx = Ix*Ix
+        Ixy = Ix*Iy
+        Iyy = Iy*Iy
+        #dont use the second gradients !!
+        # Ixx,Ixy = self.gradients(Ix)
+        # Iyy,Iyx = self.gradients(Iy)
+    
         # padding = int((ksize-1)/2)
         # Ixx =cv2.copyMakeBorder(Ixx, padding, padding, padding, padding, cv2.BORDER_CONSTANT, None, value = 0)
         # Iyy =cv2.copyMakeBorder(Iyy, padding, padding, padding, padding, cv2.BORDER_CONSTANT, None, value = 0)
         # Ixy =cv2.copyMakeBorder(Ixy, padding, padding, padding, padding, cv2.BORDER_CONSTANT, None, value = 0)
-        sx2 = ndimage.gaussian_filter(Ixx, sigma)
+        #sx2 = ndimage.gaussian_filter(Ixx, sigma)
         sx2 = cv2.GaussianBlur(Ixx,(ksize,ksize),sigma,borderType=cv2.BORDER_CONSTANT)
         sy2 = cv2.GaussianBlur(Iyy,(ksize,ksize),sigma,borderType=cv2.BORDER_CONSTANT)
         sxsy = cv2.GaussianBlur(Ixy,(ksize,ksize),sigma,borderType=cv2.BORDER_CONSTANT)
@@ -582,7 +591,7 @@ class Automatic_Corner_Detection(object):
 
 
         S_xx, S_yy, S_xy = self.second_moments(image_bw,ksize,sigma)
-        R = np.zeros_like(image_bw).astype(float)
+        R = np.zeros_like(image_bw).astype(np.float64)
         M = np.array([[S_xx,S_xy],
                       [S_xy,S_yy]])
         for i in range(image_bw.shape[0]):
@@ -620,15 +629,17 @@ class Automatic_Corner_Detection(object):
         R[R<median] = 0.0
         padding = int((ksize-1)/2)
         R_padded = cv2.copyMakeBorder(R, padding, padding, padding, padding, cv2.BORDER_CONSTANT, None, value = 0)
-        
+        R_maxpool = np.zeros_like(R).astype(np.float64)
         for i in range(w):
             for j in range(h):
                 #do maxpool for each pixel
                 window =R_padded[i:i+ksize,j:j+ksize]
-                window[window!=window.max()] = 0.0
-                R_padded[i:i+ksize,j:j+ksize] = window
+                # window[window!=window.max()] = 0.0
+                # R_padded[i:i+ksize,j:j+ksize] = window
+                R_maxpool[i,j] = window.max()
         #remove the padding now
-        R = R_padded[padding:w-padding,padding:h-padding]
+        
+        R [R != R_maxpool] = 0.0
         x = np.zeros(k).astype(int)
         y = np.zeros(k).astype(int)
         R_copy = np.copy(R)

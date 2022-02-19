@@ -330,6 +330,7 @@ def part_9_a(homography_parameters, path1, path2):
     cv2.waitKey(0)
 
 
+        
 
 
 
@@ -337,13 +338,13 @@ if __name__ == '__main__':
     print("--- Problem Set 3 ---")
     # Comment out the sections you want to skip
 
-    # part_1()
-    # part_2()
-    #part_3()  
+    part_1()
+    part_2()
+    part_3()  
     part_4_a()
     part_4_b()
-    #part_5_a()
-    #part_5_b()
+    part_5_a()
+    part_5_b()
     
     # path1 = os.path.join(IMG_DIR, "everest1.jpg")
     # path2 = os.path.join(IMG_DIR, "everest2.jpg")
