@@ -319,10 +319,10 @@ def draw_box(image, markers, thickness=1):
         numpy.array: image with lines drawn.
     """
     out_image = np.copy(image)
-    cv2.line(out_image, markers[0], markers[1], (0,255,0),thickness)
-    cv2.line(out_image, markers[0], markers[2], (0,255,0),thickness)
-    cv2.line(out_image, markers[3], markers[2], (0,255,0),thickness)
-    cv2.line(out_image, markers[3], markers[1], (0,255,0),thickness)
+    cv2.line(out_image, markers[0], markers[1], (0,0,255),thickness)
+    cv2.line(out_image, markers[0], markers[2], (0,0,255),thickness)
+    cv2.line(out_image, markers[3], markers[2], (0,0,255),thickness)
+    cv2.line(out_image, markers[3], markers[1], (0,0,255),thickness)
     return out_image
 
 
@@ -518,11 +518,11 @@ class Automatic_Corner_Detection(object):
             :return Iy: Array of shape (M,N) representing partial derivative of image
                     in y-direction
         '''
-        # image_bw = cv2.copyMakeBorder(image_bw, 1, 1, 1, 1, cv2.BORDER_CONSTANT, None, value = 0)
-        Ix = cv2.filter2D(image_bw, -1, self.SOBEL_X,borderType=cv2.BORDER_CONSTANT)
-        Iy = cv2.filter2D(image_bw, -1, self.SOBEL_Y,borderType=cv2.BORDER_CONSTANT)
-        
-
+        #image_bw = cv2.copyMakeBorder(image_bw, 1, 1, 1, 1, cv2.BORDER_CONSTANT, None, value = 0)
+        #Ix1 = cv2.filter2D(image_bw, - 1, self.SOBEL_X,borderType=cv2.BORDER_CONSTANT)
+        #Iy1 = cv2.filter2D(image_bw, -1, self.SOBEL_Y,borderType=cv2.BORDER_CONSTANT)
+        Ix = ndimage.convolve(image_bw, self.SOBEL_X, mode='constant', cval=0.0)
+        Iy = ndimage.convolve(image_bw, self.SOBEL_Y, mode='constant', cval=0.0)
         return Ix, Iy
 
 
@@ -549,7 +549,7 @@ class Automatic_Corner_Detection(object):
         # Ixx =cv2.copyMakeBorder(Ixx, padding, padding, padding, padding, cv2.BORDER_CONSTANT, None, value = 0)
         # Iyy =cv2.copyMakeBorder(Iyy, padding, padding, padding, padding, cv2.BORDER_CONSTANT, None, value = 0)
         # Ixy =cv2.copyMakeBorder(Ixy, padding, padding, padding, padding, cv2.BORDER_CONSTANT, None, value = 0)
-        
+        sx2 = ndimage.gaussian_filter(Ixx, sigma)
         sx2 = cv2.GaussianBlur(Ixx,(ksize,ksize),sigma,borderType=cv2.BORDER_CONSTANT)
         sy2 = cv2.GaussianBlur(Iyy,(ksize,ksize),sigma,borderType=cv2.BORDER_CONSTANT)
         sxsy = cv2.GaussianBlur(Ixy,(ksize,ksize),sigma,borderType=cv2.BORDER_CONSTANT)
