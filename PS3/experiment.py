@@ -331,7 +331,40 @@ def part_9_a(homography_parameters, path1, path2):
 
 
         
-
+# def part_9_b(path1,path2):
+    
+#     im_src = cv2.imread(path1, 1)
+#     im_dst = cv2.imread(path2, 1)
+#     # Initiate ORB detector
+#     orb = cv2.ORB_create()
+#     # find the keypoints and descriptors with ORB
+#     kp1, des1 = orb.detectAndCompute(im_src,None)
+#     kp2, des2 = orb.detectAndCompute(im_dst,None)
+    
+#     bf = cv2.BFMatcher()
+#     matches = bf.knnMatch(des1,des2,k=2)
+#     # Apply ratio test
+#     good = []
+#     for m,n in matches:
+#         if m.distance < 0.75*n.distance:
+#             good.append([m])
+   
+#     points1 = []
+#     points2 = []
+#     for match in good:
+        
+#         src_index = match[0].queryIdx
+#         dst_index = match[0].trainIdx
+        
+#         (x1,y1) = kp1[src_index].pt
+#         (x2,y2) = kp2[dst_index].pt
+#         points1.append((int(x1),int(y1)))
+#         points2.append((int(x2),int(y2)))
+        
+        
+        
+    
+    
 
 
 if __name__ == '__main__':
@@ -346,15 +379,15 @@ if __name__ == '__main__':
     part_5_a()
     part_5_b()
     
-    # path1 = os.path.join(IMG_DIR, "everest1.jpg")
-    # path2 = os.path.join(IMG_DIR, "everest2.jpg")
-    # # part_6(path1,path2)  # use this when you generate p1.npy and p2.npy
+    path1 = os.path.join(IMG_DIR, "everest1.jpg")
+    path2 = os.path.join(IMG_DIR, "everest2.jpg")
+    #part_6(path1,path2)  # use this when you generate p1.npy and p2.npy
 
     # #Part 7
-    # homography_parameters = part_7()
+    homography_parameters = part_7()
     
     # #Part 9
-    # part_9_a(homography_parameters,path1,path2)
+    part_9_a(homography_parameters,path1,path2)
     
 
 
