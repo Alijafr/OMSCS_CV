@@ -184,7 +184,7 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
     B = np.transpose(B,(1,2,0)) # this is now m,n ,2 --> converted this way to use np.linalg
     
     uv = np.zeros((m,n,2))
-    epsilon = 1e-10
+    epsilon = 1e-7
     #add more to the filter --> eig values need to be big && almost equal
     mask = det > epsilon
     
@@ -480,4 +480,7 @@ def classify_video(images):
   Returns:
       int:  Class of video
   """
+  for i in range(len(images)-1):
+      hierarchical_lk
+      
   return 0 
