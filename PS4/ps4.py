@@ -184,7 +184,7 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
     B = np.transpose(B,(1,2,0)) # this is now m,n ,2 --> converted this way to use np.linalg
     
     uv = np.zeros((m,n,2))
-    epsilon = 1e-20
+    epsilon = 1e-10
     #add more to the filter --> eig values need to be big && almost equal
     mask = det > epsilon
     
@@ -439,7 +439,8 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
             expand_V = expand_image(2*V)
             #now create the warp image from the the lowest level to next 
             reduced_a = gauss_a[iter_-i-1]
-            warped_image_a =warp(reduced_a, expand_U, expand_V, interpolation, border_mode)
+            #need to revert back, hencse the - U and -V
+            warped_image_a =warp(reduced_a, -expand_U, -expand_V, interpolation, border_mode)
         else:
              #next level of b
              reduced_b = gauss_b[iter_-i]
@@ -451,7 +452,8 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
              expand_U = expand_image(2*U)
              expand_V = expand_image(2*V)
              reduced_a = gauss_a[iter_-i-1]
-             warped_image_a =warp(reduced_a, expand_U, expand_V, interpolation, border_mode)
+             #need to revert back, hencse the - U and -V
+             warped_image_a =warp(reduced_a, -expand_U, -expand_V, interpolation, border_mode)
              
         pre_U = expand_U
         pre_V = expand_V
