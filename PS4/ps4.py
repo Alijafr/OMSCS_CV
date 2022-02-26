@@ -184,7 +184,7 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
     B = np.transpose(B,(1,2,0)) # this is now m,n ,2 --> converted this way to use np.linalg
     
     uv = np.zeros((m,n,2))
-    epsilon = 1e-30
+    epsilon = 1e-20
     #add more to the filter --> eig values need to be big && almost equal
     mask = det > epsilon
     
@@ -321,8 +321,16 @@ def expand_image(image):
         numpy.array: same type as 'image' with the doubled height and
                      width.
     """
-
-    raise NotImplementedError
+    m,n = image.shape[:2]
+    out_img = np.zeros((2*m,2*n))
+    out_img[::2,::2] = image #insert 0 between each rows and columns of image (::2 menas step of 2)
+    #now apply the seperable fitler
+    kernel = np.array([1, 4, 6, 4, 1])/8
+    out_img = cv2.sepFilter2D(out_img, -1, kernel, kernel)
+    
+    return out_img
+    
+    
 
 
 def laplacian_pyramid(g_pyr):
@@ -336,8 +344,17 @@ def laplacian_pyramid(g_pyr):
     Returns:
         list: Laplacian pyramid, with l_pyr[-1] = g_pyr[-1].
     """
-
-    raise NotImplementedError
+    levels = len(g_pyr)-1
+    laplacian_pyramids = []
+    laplacian_pyramids.append(g_pyr[-1])
+    for i in range(levels):
+        img_gauss = g_pyr[levels-i]
+        expand_img = expand_image(img_gauss)
+        laplacian_pyramids.append(g_pyr[levels-i-1]-expand_img)
+    
+    
+    laplacian_pyramids.reverse()
+    return laplacian_pyramids
 
 
 def warp(image, U, V, interpolation, border_mode):
@@ -363,8 +380,19 @@ def warp(image, U, V, interpolation, border_mode):
         numpy.array: warped image, such that
                      warped[y, x] = image[y + V[y, x], x + U[y, x]]
     """
-
-    raise NotImplementedError
+    warp = np.copy(image)
+    M, N = image. shape
+    X, Y = np.meshgrid( range (N) , range (M) )
+    map_x = X + U
+    map_y = Y + V
+    map_x = np.clip(map_x, 0, N-1)
+    map_y = np.clip(map_y, 0, M-1)
+    # for i in range(M):
+    #     for j in range(N):
+    #         warp[i,j] = image[int(i+V[i,j]),int(j+U[i,j])] 
+    warp = cv2.remap(image, map_x.astype(np.float32), map_y.astype(np.float32), interpolation,border_mode,borderValue = 0)    
+    return warp
+    
 
 
 def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
@@ -394,8 +422,51 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
             V (numpy.array): raw displacement (in pixels) along Y-axis,
                              same size and type as U.
     """
+    gauss_a = gaussian_pyramid(img_a, levels)
+    #laplacian_a = laplacian_pyramid(gauss_a)
+    gauss_b = gaussian_pyramid(img_b, levels)
+    #laplacian_b = laplacian_pyramid(gauss_b)
+    pre_U = None
+    pre_V = None
+    iter_ = levels-1
+    for i in range(iter_):
+        if i ==0:
+            reduced_a = gauss_a[iter_-i]
+            reduced_b = gauss_b[iter_-i]
+            U,V = optic_flow_lk(reduced_a, reduced_b, k_size, k_type,sigma)
+            #multiply the fields by 2, and expand them. It will be used for warping the next level of a --> should be almost equal to the next level of b 
+            expand_U = expand_image(2*U)
+            expand_V = expand_image(2*V)
+            #now create the warp image from the the lowest level to next 
+            reduced_a = gauss_a[iter_-i-1]
+            warped_image_a =warp(reduced_a, expand_U, expand_V, interpolation, border_mode)
+        else:
+             #next level of b
+             reduced_b = gauss_b[iter_-i]
+             #do the optical flow for the next level
+             delt_U,delt_V = optic_flow_lk(warped_image_a, reduced_b, k_size, k_type,sigma)
+             U = pre_U +delt_U 
+             V = pre_V + delt_V
+             #expand , and warp again
+             expand_U = expand_image(2*U)
+             expand_V = expand_image(2*V)
+             reduced_a = gauss_a[iter_-i-1]
+             warped_image_a =warp(reduced_a, expand_U, expand_V, interpolation, border_mode)
+             
+        pre_U = expand_U
+        pre_V = expand_V
+        
+    #now just apply the optical flow for the highest level 
+    delt_U,delt_V = optic_flow_lk(warped_image_a, img_b, k_size, k_type,sigma)
+    #add it to the previous displacements 
+    U = pre_U +delt_U 
+    V = pre_V + delt_V
+        
+    return U,V
+        
+    
 
-    raise NotImplementedError
+    
 
 def classify_video(images):
   """Classifies a set of frames as either
