@@ -21,6 +21,7 @@ def read_video(video_file, show=False):
         ret, frame = cap.read()
         if not ret:
             break
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         frames.append(frame)
 
         # Opens a new window and displays the input
@@ -178,15 +179,20 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
                  [sxsy,sy2]]) # this is 2,2,m,n
     A = np.transpose(A,(2,3,0,1))  # this is now m,n ,2 ,2 --> converted this way to use np.linalg
     det = np.linalg.det(A)
+    eig = np.linalg.eigvals(A)
+    #just to make sure we are not dividing by 0
+    eig[:,:,1][eig[:,:,1]==0] = 1e-20
+    eig_ratio = eig[:,:,0]/eig[:,:,1]
+    
     
     #B matrix
     B = np.array([sxst,syst]) # 2,m,n
     B = np.transpose(B,(1,2,0)) # this is now m,n ,2 --> converted this way to use np.linalg
     
     uv = np.zeros((m,n,2))
-    epsilon = 1e-7
+    epsilon = 1e-8
     #add more to the filter --> eig values need to be big && almost equal
-    mask = det > epsilon
+    mask = (det > epsilon) & (eig[:,:,0] > 0.001) & (eig_ratio < 20)
     
     #vu = np.linalg.pinv(A)@B
     uv[mask,:] = np.linalg.solve(A[mask,:,:], B[mask,:])
@@ -350,7 +356,11 @@ def laplacian_pyramid(g_pyr):
     for i in range(levels):
         img_gauss = g_pyr[levels-i]
         expand_img = expand_image(img_gauss)
-        laplacian_pyramids.append(g_pyr[levels-i-1]-expand_img)
+        higher_gauss = g_pyr[levels-i-1]
+        ex_w, ex_h = expand_img.shape[:2]
+        ga_w, ga_h = higher_gauss.shape[:2]
+        expand_img = cv2.copyMakeBorder(expand_img, 0, ga_w-ex_w, 0, ga_h-ex_h,borderType = cv2.BORDER_REPLICATE)
+        laplacian_pyramids.append(higher_gauss-expand_img)
     
     
     laplacian_pyramids.reverse()
@@ -435,8 +445,8 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
             reduced_b = gauss_b[iter_-i]
             U,V = optic_flow_lk(reduced_a, reduced_b, k_size, k_type,sigma)
             #multiply the fields by 2, and expand them. It will be used for warping the next level of a --> should be almost equal to the next level of b 
-            expand_U = expand_image(2*U)
-            expand_V = expand_image(2*V)
+            expand_U = 2*expand_image(U)
+            expand_V = 2*expand_image(V)
             #now create the warp image from the the lowest level to next 
             reduced_a = gauss_a[iter_-i-1]
             #need to revert back, hencse the - U and -V
@@ -449,8 +459,10 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
              U = pre_U +delt_U 
              V = pre_V + delt_V
              #expand , and warp again
-             expand_U = expand_image(2*U)
-             expand_V = expand_image(2*V)
+             #expand_U = expand_image(2*U)
+             #expand_V = expand_image(2*V)
+             expand_U = 2*expand_image(U)
+             expand_V = 2*expand_image(V)
              reduced_a = gauss_a[iter_-i-1]
              #need to revert back, hencse the - U and -V
              warped_image_a =warp(reduced_a, -expand_U, -expand_V, interpolation, border_mode)
@@ -479,8 +491,39 @@ def classify_video(images):
       images list(numpy.array): greyscale floating-point frames of a video
   Returns:
       int:  Class of video
+      
   """
+  
+  u_average = 0
+  v_average = 0
+  average_area_u= 0
+  average_area_v = 0
+  total_area = images[0].shape[0]*images[0].shape[1]
   for i in range(len(images)-1):
-      hierarchical_lk
+      if i == 0:
+          continue
+      interpolation = cv2.INTER_CUBIC  # You may try different values
+      border_mode = cv2.BORDER_REFLECT101  # You may try different values
+
+      u, v = hierarchical_lk(images[i], images[i-1], levels=4, k_size=21, k_type="gaussian",
+                                     sigma=10, interpolation=interpolation, border_mode=border_mode)
+      average_area_u +=len(u[np.abs(u)>20])
+      average_area_v +=len(v[np.abs(v)>20])
+      u_average += (u.mean())
+      v_average += v.mean()
+      
+  u_average /= len(images)
+  v_average /= len(images)
+  average_area_u /= len(images)
+  average_area_v /= len(images)
+  
+  u2area = u_average *average_area_u /total_area
+  v2area = v_average *average_area_v /total_area
+  
+  print(u2area)
+  print(v2area)
+  
+      
+      
       
   return 0 

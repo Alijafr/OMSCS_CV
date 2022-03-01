@@ -34,23 +34,29 @@ def nothing(x):
 #create a seperate window named 'controls' for trackbar
 cv2.namedWindow('controls')
 #create trackbar in 'controls' window with name 'r''
-cv2.createTrackbar('k_size','controls',3,150,nothing)
-cv2.createTrackbar('sigma','controls',10,50,nothing)
-cv2.createTrackbar('scale','controls',2,10,nothing)
-cv2.createTrackbar('stride','controls',5,20,nothing)
+cv2.createTrackbar('k_size','controls',3,200,nothing)
+cv2.createTrackbar('sigma','controls',10,80,nothing)
+cv2.createTrackbar('scale','controls',2,20,nothing)
+cv2.createTrackbar('stride','controls',5,30,nothing)
 cv2.createTrackbar('ktype','controls',0,1,nothing)
+cv2.createTrackbar('level','controls',4,6,nothing)
 
 input_dir = "input_images"
 output_dir = "./"
 
+# shift_0 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'Shift0.png'),
+#                      0) / 255.
+# shift_r10 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'ShiftR10.png'),
+#                        0) / 255.
+# shift_r20 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'ShiftR20.png'),
+#                        0) / 255.
+# shift_r40 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'ShiftR40.png'),
+#                        0) / 255.
+
 shift_0 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'Shift0.png'),
                      0) / 255.
-shift_r2 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'ShiftR2.png'),
-                      0) / 255.
-shift_r5_u5 = cv2.imread(
-    os.path.join(input_dir, 'TestSeq', 'ShiftR5U5.png'), 0) / 255.
-
-
+shift_10 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'ShiftR10.png'),
+                     0) / 255.
 #create a while loop act as refresh for the view 
 while(1):
  
@@ -66,23 +72,17 @@ while(1):
     sigma = int(cv2.getTrackbarPos('sigma','controls'))  # TODO: Select a sigma value if you are using a gaussian kernel
     scale = int(cv2.getTrackbarPos('scale','controls'))
     stride = int(cv2.getTrackbarPos('stride','controls'))
+    levels = int(cv2.getTrackbarPos('level','controls'))
     
-    # u, v = ps4.optic_flow_lk(shift_0, shift_r2, k_size, k_type, sigma)
-    # # Flow image
-    # u_v = quiver(u, v, scale=scale, stride=stride)
-    # # #cv2.imwrite(os.path.join(output_dir, "ps4-1-a-1.png"), u_v)
-    # cv2.imshow("flow 1", u_v)
-    
+    interpolation = cv2.INTER_CUBIC  # You may try different values
+    border_mode = cv2.BORDER_REFLECT101  # You may try different values
 
-    
-    u, v = ps4.optic_flow_lk(shift_0, shift_r5_u5, k_size, k_type, sigma)
-    
-    u = cv2.medianBlur(u.astype(np.float32), 5)
-    v = cv2.medianBlur(v.astype(np.float32),5)
-    # Flow image
-    u_v = quiver(u, v, scale=scale, stride=stride)
+    u10, v10 = ps4.hierarchical_lk(shift_0, shift_10, levels, k_size, k_type,
+                                   sigma, interpolation, border_mode)
+
+    u_v = quiver(u10, v10, scale=scale, stride=stride)
     #cv2.imwrite(os.path.join(output_dir, "ps4-1-a-2.png"), u_v)
-    cv2.imshow("flow 2", u_v)
+    cv2.imshow("flow", u_v)
 	
 	# waitfor the user to press escape and break the while loop 
     k = cv2.waitKey(1) & 0xFF
