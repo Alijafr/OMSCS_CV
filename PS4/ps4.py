@@ -190,9 +190,9 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
     B = np.transpose(B,(1,2,0)) # this is now m,n ,2 --> converted this way to use np.linalg
     
     uv = np.zeros((m,n,2))
-    epsilon = 1e-8
+    epsilon = 1e-20
     #add more to the filter --> eig values need to be big && almost equal
-    mask = (det > epsilon) & (eig[:,:,0] > 0.001) & (eig_ratio < 20)
+    mask = (det > epsilon) & (eig[:,:,0] > 0.000001) & (eig_ratio < 100)
     
     #vu = np.linalg.pinv(A)@B
     uv[mask,:] = np.linalg.solve(A[mask,:,:], B[mask,:])
@@ -231,13 +231,14 @@ def reduce_image(image):
     #image=cv2.GaussianBlur(image,(5,5),sigma)
     kernel = np.array([1, 4, 6, 4, 1])/16
     image = cv2.sepFilter2D(image, -1, kernel, kernel)
-    m,n = image.shape[:2]
-    if m%2 != 0 : m-=1
-    if n%2 != 0 : n-=1
-    image = image[np.arange(0,m,2)]
-    image = image[:,np.arange(0,n,2)]
     
-    return image
+    # m,n = image.shape[:2]
+    # if m%2 != 0 : m-=1
+    # if n%2 != 0 : n-=1
+    # image = image[np.arange(0,m,2)]
+    # image = image[:,np.arange(0,n,2)]
+    
+    return image[0::2,0::2]
 
     
 
@@ -357,9 +358,10 @@ def laplacian_pyramid(g_pyr):
         img_gauss = g_pyr[levels-i]
         expand_img = expand_image(img_gauss)
         higher_gauss = g_pyr[levels-i-1]
-        ex_w, ex_h = expand_img.shape[:2]
-        ga_w, ga_h = higher_gauss.shape[:2]
-        expand_img = cv2.copyMakeBorder(expand_img, 0, ga_w-ex_w, 0, ga_h-ex_h,borderType = cv2.BORDER_REPLICATE)
+        #ex_w, ex_h = expand_img.shape[:2]
+        ga_h, ga_w = higher_gauss.shape[:2]
+        #expand_img = cv2.copyMakeBorder(expand_img, 0, ga_w-ex_w, 0, ga_h-ex_h,borderType = cv2.BORDER_REPLICATE)
+        expand_img = expand_img[:ga_h,:ga_w]
         laplacian_pyramids.append(higher_gauss-expand_img)
     
     
@@ -393,14 +395,14 @@ def warp(image, U, V, interpolation, border_mode):
     warp = np.copy(image)
     M, N = image. shape
     X, Y = np.meshgrid( range (N) , range (M) )
-    map_x = X + U
-    map_y = Y + V
+    map_x = np.float32(X + U)
+    map_y =  np.float32(Y + V)
     map_x = np.clip(map_x, 0, N-1)
     map_y = np.clip(map_y, 0, M-1)
     # for i in range(M):
     #     for j in range(N):
     #         warp[i,j] = image[int(i+V[i,j]),int(j+U[i,j])] 
-    warp = cv2.remap(image, map_x.astype(np.float32), map_y.astype(np.float32), interpolation,border_mode,borderValue = 0)    
+    warp = cv2.remap(image, map_x, map_y, interpolation,border_mode,borderValue = 0)    
     return warp
     
 
@@ -494,36 +496,53 @@ def classify_video(images):
       
   """
   
-  u_average = 0
-  v_average = 0
+  u_average_pos = 0
+  u_average_neg = 0
+  v_average_pos = 0
+  v_average_neg = 0
   average_area_u= 0
   average_area_v = 0
   total_area = images[0].shape[0]*images[0].shape[1]
-  for i in range(len(images)-1):
+  num_frames = 10
+  for i in range(len(images[:num_frames])-1):
+      
       if i == 0:
           continue
       interpolation = cv2.INTER_CUBIC  # You may try different values
       border_mode = cv2.BORDER_REFLECT101  # You may try different values
-
-      u, v = hierarchical_lk(images[i], images[i-1], levels=4, k_size=21, k_type="gaussian",
+      sigma = 10
+      img0_blur = cv2.GaussianBlur(src=images[i-1],ksize=(21,21),sigmaX=sigma,sigmaY=sigma)
+      img1_blur = cv2.GaussianBlur(src=images[i],ksize=(21,21),sigmaX=sigma,sigmaY=sigma)
+      u, v = hierarchical_lk(img0_blur, img1_blur, levels=4, k_size=21, k_type="gaussian",
                                      sigma=10, interpolation=interpolation, border_mode=border_mode)
-      average_area_u +=len(u[np.abs(u)>20])
-      average_area_v +=len(v[np.abs(v)>20])
-      u_average += (u.mean())
-      v_average += v.mean()
+      average_area_u +=len(u[np.abs(u)>0.8*u.max()])
+      average_area_v +=len(v[np.abs(v)>0.8*v.max()])
+      if len(u[u>0])>0:
+          u_average_pos += u[u>0].mean()
+          print(u[u>0].mean())
+      if len(u[u<0])>0:                 
+          u_average_neg += u[u<0].mean()
+          print(u[u<0].mean())
+      if len(v[v>0])>0:
+          v_average_pos += v[v>0].mean()
+      if len(v[v<0])>0:
+          v_average_neg += v[v<0].mean()
       
-  u_average /= len(images)
-  v_average /= len(images)
-  average_area_u /= len(images)
-  average_area_v /= len(images)
+      
+  u_average_pos /= num_frames
+  u_average_neg /= num_frames
+  v_average_pos /= num_frames
+  v_average_neg /= num_frames
   
-  u2area = u_average *average_area_u /total_area
-  v2area = v_average *average_area_v /total_area
   
-  print(u2area)
-  print(v2area)
+  average_area_u /= num_frames
+  average_area_v /= num_frames
   
-      
-      
-      
-  return 0 
+  scale = 10000
+  u2area_pos = scale*u_average_pos /(average_area_u + average_area_v)
+  u2area_neg = scale*u_average_neg  /(average_area_u + average_area_v)
+  v2area_pos = scale*v_average_pos /(average_area_u + average_area_v)
+  v2area_neg = scale*v_average_neg /(average_area_u + average_area_v)
+  
+  
+  return u2area_pos, u2area_neg,v2area_pos,v2area_neg

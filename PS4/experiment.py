@@ -84,39 +84,40 @@ def scale_u_and_v(u, v, level, pyr):
     
     return u,v
 
-
 def part_1a():
 
-    shift_0 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'Shift0.png'),
-                         0) / 255.
-    shift_r2 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'ShiftR2.png'),
-                          0) / 255.
-    shift_r5_u5 = cv2.imread(
-        os.path.join(input_dir, 'TestSeq', 'ShiftR5U5.png'), 0) / 255.
+    shift_0 = cv2.imread(os.path.join(input_dir, 'TestSeq',
+                                      'Shift0.png'), 0) / 255.
+    shift_r2 = cv2.imread(os.path.join(input_dir, 'TestSeq', 
+                                       'ShiftR2.png'), 0) / 255.
+    shift_r5_u5 = cv2.imread(os.path.join(input_dir, 'TestSeq', 
+                                          'ShiftR5U5.png'), 0) / 255.
 
     # Optional: smooth the images if LK doesn't work well on raw images
-    k_size = 47  # TODO: Select a kernel size
-    k_type = "gassuian"  # TODO: Select a kernel type
-    sigma = 33  # TODO: Select a sigma value if you are using a gaussian kernel
+    k_size = 25  # TODO: Select a kernel size
+    k_type = "uniform"  # TODO: Select a kernel type
+    sigma = 0  # TODO: Select a sigma value if you are using a gaussian kernel
     u, v = ps4.optic_flow_lk(shift_0, shift_r2, k_size, k_type, sigma)
 
     # Flow image
-    u_v = quiver(u, v, scale=5, stride=19)
+    u_v = quiver(u, v, scale=3, stride=10)
     cv2.imwrite(os.path.join(output_dir, "ps4-1-a-1.png"), u_v)
 
     # Now let's try with ShiftR5U5. You may want to try smoothing the
     # input images first.
-
-    k_size = 151  # TODO: Select a kernel size
-    k_type = "gassuian"  # TODO: Select a kernel type
-    sigma = 23  # TODO: Select a sigma value if you are using a gaussian kernel
-    u, v = ps4.optic_flow_lk(shift_0, shift_r5_u5, k_size, k_type, sigma)
+    shift_0_blur = cv2.GaussianBlur(src=shift_0,ksize=(11,11),sigmaX=sigma,sigmaY=sigma)
+    shift_r5_blur = cv2.GaussianBlur(src=shift_r5_u5,ksize=(11,11),sigmaX=sigma,sigmaY=sigma)
+    k_size = 45 # TODO: Select a kernel size
+    k_type = "uniform"  # TODO: Select a kernel type
+    sigma = 0 # TODO: Select a sigma value if you are using a gaussian kernel
+    u, v = ps4.optic_flow_lk(shift_0_blur, shift_r5_blur, k_size, k_type, sigma)
 
     # Flow image
-    u_v = quiver(u, v, scale=12, stride=19)
+    u_v = quiver(u, v, scale=3, stride=10)
     cv2.imwrite(os.path.join(output_dir, "ps4-1-a-2.png"), u_v)
 
-
+    
+    
 def part_1b():
     """Performs the same operations applied in part_1a using the images
     ShiftR10, ShiftR20 and ShiftR40.
@@ -138,43 +139,53 @@ def part_1b():
     Returns:
         None
     """
-    shift_0 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'Shift0.png'),
-                         0) / 255.
-    shift_r10 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'ShiftR10.png'),
-                           0) / 255.
-    shift_r20 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'ShiftR20.png'),
-                           0) / 255.
-    shift_r40 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'ShiftR40.png'),
-                           0) / 255.
-    k_size = 133  # TODO: Select a kernel size
-    k_type = "gassuian"  # TODO: Select a kernel type
-    sigma = 32  # TODO: Select a sigma value if you are using a gaussian kernel
-    u, v = ps4.optic_flow_lk(shift_0, shift_r10, k_size, k_type, sigma)
-    
+    shift_0 = cv2.imread(os.path.join(input_dir, 'TestSeq',
+                                      'Shift0.png'), 0) / 255.
+    shift_r10 = cv2.imread(os.path.join(input_dir, 'TestSeq',
+                                        'ShiftR10.png'), 0) / 255.
+    shift_r20 = cv2.imread(os.path.join(input_dir, 'TestSeq',
+                                        'ShiftR20.png'), 0) / 255.
+    shift_r40 = cv2.imread(os.path.join(input_dir, 'TestSeq',
+                                        'ShiftR40.png'), 0) / 255.
+
+    #Optional: smooth the images if LK doesn't work well on raw images
+    k_size = 63  # TODO: Select a kernel size
+    k_type = "uniform"  # TODO: Select a kernel type
+    sigma = 3  # TODO: Select a sigma value if you are using a gaussian kernel
+    shift_0_blur_r10 = cv2.GaussianBlur(src=shift_0,ksize=(11,11),sigmaX=sigma,sigmaY=sigma)
+    shift_r10_blur_r10 = cv2.GaussianBlur(src=shift_r10,ksize=(11,11),sigmaX=sigma,sigmaY=sigma)
+
+    u, v = ps4.optic_flow_lk(shift_0_blur_r10, shift_r10_blur_r10, k_size, k_type, sigma)
+
     # Flow image
-    u_v = quiver(u, v, scale=12, stride=14)
+    u_v = quiver(u, v, scale=5, stride=10)
     cv2.imwrite(os.path.join(output_dir, "ps4-1-b-1.png"), u_v)
-    
-    k_size = 129  # TODO: Select a kernel size
-    k_type = "gassuian"  # TODO: Select a kernel type
-    sigma = 31  # TODO: Select a sigma value if you are using a gaussian kernel
-    u, v = ps4.optic_flow_lk(shift_0, shift_r20, k_size, k_type, sigma)
-    
+
+    k_size = 63  # TODO: Select a kernel size
+    k_type = "uniform"  # TODO: Select a kernel type
+    sigma = 11  # TODO: Select a sigma value if you are using a gaussian kernel
+    kernel = 23
+    shift_0_blur_r10 = cv2.GaussianBlur(src=shift_0,ksize=(kernel,kernel),sigmaX=sigma,sigmaY=sigma)
+    shift_r20_blur_r20 = cv2.GaussianBlur(src=shift_r20,ksize=(kernel,kernel),sigmaX=sigma,sigmaY=sigma)
+
+    u, v = ps4.optic_flow_lk(shift_0_blur_r10, shift_r20_blur_r20, k_size, k_type, sigma)
+
     # Flow image
-    u_v = quiver(u, v, scale=20, stride=15)
+    u_v = quiver(u, v, scale=1.2, stride=10)
     cv2.imwrite(os.path.join(output_dir, "ps4-1-b-2.png"), u_v)
-    
-    k_size = 127  # TODO: Select a kernel size
-    k_type = "gassuian"  # TODO: Select a kernel type
-    sigma = 28  # TODO: Select a sigma value if you are using a gaussian kernel
-    u, v = ps4.optic_flow_lk(shift_0, shift_r40, k_size, k_type, sigma)
-    
+
+    k_size = 60  # TODO: Select a kernel size
+    k_type = "uniform"  # TODO: Select a kernel type
+    sigma = 15 # TODO: Select a sigma value if you are using a gaussian kernel
+    kernel = 47
+    shift_0_blur_r10 = cv2.GaussianBlur(src=shift_0,ksize=(kernel,kernel),sigmaX=sigma,sigmaY=sigma)
+    shift_r40_blur_r40 = cv2.GaussianBlur(src=shift_r40,ksize=(kernel,kernel),sigmaX=sigma,sigmaY=sigma)
+
+    u, v = ps4.optic_flow_lk(shift_0_blur_r10, shift_r40_blur_r40, k_size, k_type, sigma)
+
     # Flow image
-    u_v = quiver(u, v, scale=20, stride=15)
+    u_v = quiver(u, v, scale=0.5, stride=10)
     cv2.imwrite(os.path.join(output_dir, "ps4-1-b-3.png"), u_v)
-    
-    
-    
     
 
 
@@ -260,39 +271,60 @@ def part_3a_2():
 
 
 def part_4a():
-    shift_0 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'Shift0.png'),
-                         0) / 255.
-    shift_r10 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'ShiftR10.png'),
-                           0) / 255.
-    shift_r20 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'ShiftR20.png'),
-                           0) / 255.
-    shift_r40 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'ShiftR40.png'),
-                           0) / 255.
+    shift_0 = cv2.imread(os.path.join(input_dir, 'TestSeq',
+                                      'Shift0.png'), 0) / 255.
+    shift_r10 = cv2.imread(os.path.join(input_dir, 'TestSeq',
+                                        'ShiftR10.png'), 0) / 255.
+    shift_r20 = cv2.imread(os.path.join(input_dir, 'TestSeq',
+                                        'ShiftR20.png'), 0) / 255.
+    shift_r40 = cv2.imread(os.path.join(input_dir, 'TestSeq',
+                                        'ShiftR40.png'), 0) / 255.
 
     levels = 4  # TODO: Define the number of levels
-    k_size = 15  # TODO: Select a kernel size
-    k_type = "gaussian"  # TODO: Select a kernel type
-    sigma = 2  # TODO: Select a sigma value if you are using a gaussian kernel
+    k_size = 18  # TODO: Select a kernel size
+    k_type = "uniform"  # TODO: Select a kernel type
+    sigma = 0  # TODO: Select a sigma value if you are using a gaussian kernel
     interpolation = cv2.INTER_CUBIC  # You may try different values
     border_mode = cv2.BORDER_REFLECT101  # You may try different values
-
-    u10, v10 = ps4.hierarchical_lk(shift_0, shift_r10, levels, k_size, k_type,
+    
+    shift_0_blur_r10 = cv2.GaussianBlur(src=shift_0,ksize=(21,21),sigmaX=sigma,sigmaY=sigma)
+    shift_r10_blur_r10 = cv2.GaussianBlur(src=shift_r10,ksize=(21,21),sigmaX=sigma,sigmaY=sigma)
+    
+    u10, v10 = ps4.hierarchical_lk(shift_0_blur_r10, shift_r10_blur_r10, levels, k_size, k_type,
                                    sigma, interpolation, border_mode)
 
-    u_v = quiver(u10, v10, scale=1, stride=14)
+    u_v = quiver(u10, v10, scale=0.5, stride=10)
     cv2.imwrite(os.path.join(output_dir, "ps4-4-a-1.png"), u_v)
 
     # You may want to try different parameters for the remaining function
     # calls.
-    u20, v20 = ps4.hierarchical_lk(shift_0, shift_r20, levels, k_size, k_type,
+    levels = 4  # TODO: Define the number of levels
+    k_size = 25  # TODO: Select a kernel size
+    k_type = "uniform"  # TODO: Select a kernel type
+    sigma = 10  # TODO: Select a sigma value if you are using a gaussian kernel
+    interpolation = cv2.INTER_CUBIC  # You may try different values
+    border_mode = cv2.BORDER_REFLECT101  # You may try different values
+    shift_0_blur_r20 = cv2.GaussianBlur(src=shift_0,ksize=(17,17),sigmaX=sigma,sigmaY=sigma)
+    shift_r20_blur_r20 = cv2.GaussianBlur(src=shift_r20,ksize=(17,17),sigmaX=sigma,sigmaY=sigma)
+
+    u20, v20 = ps4.hierarchical_lk(shift_0_blur_r20, shift_r20_blur_r20, levels, k_size, k_type,
                                    sigma, interpolation, border_mode)
 
-    u_v = quiver(u20, v20, scale=1, stride=14)
+    u_v = quiver(u20, v20, scale=0.4, stride=10)
     cv2.imwrite(os.path.join(output_dir, "ps4-4-a-2.png"), u_v)
+
+    levels = 5  # TODO: Define the number of levels
+    k_size = 31  # TODO: Select a kernel size
+    k_type = "uniform"  # TODO: Select a kernel type
+    sigma = 15  # TODO: Select a sigma value if you are using a gaussian kernel
+    interpolation = cv2.INTER_CUBIC  # You may try different values
+    border_mode = cv2.BORDER_REFLECT101  # You may try different values
+    shift_0_blur_r40 = cv2.GaussianBlur(src=shift_0,ksize=(k_size,k_size),sigmaX=sigma,sigmaY=sigma)
+    shift_r20_blur_r40 = cv2.GaussianBlur(src=shift_r40,ksize=(k_size,k_size),sigmaX=sigma,sigmaY=sigma)
 
     u40, v40 = ps4.hierarchical_lk(shift_0, shift_r40, levels, k_size, k_type,
                                    sigma, interpolation, border_mode)
-    u_v = quiver(u40, v40, scale=1, stride=14)
+    u_v = quiver(u40, v40, scale=0.5, stride=10)
     cv2.imwrite(os.path.join(output_dir, "ps4-4-a-3.png"), u_v)
 
 
@@ -302,17 +334,18 @@ def part_4b():
     urban_img_02 = cv2.imread(os.path.join(input_dir, 'Urban2', 'urban02.png'),
                               0) / 255.
 
-    levels = 4  # TODO: Define the number of levels
+    levels = 6  # TODO: Define the number of levels
     k_size = 15  # TODO: Select a kernel size
-    k_type = ""  # TODO: Select a kernel type
-    sigma = 2  # TODO: Select a sigma value if you are using a gaussian kernel
+    k_type = "uniform"  # TODO: Select a kernel type
+    sigma = 0  # TODO: Select a sigma value if you are using a gaussian kernel
     interpolation = cv2.INTER_CUBIC  # You may try different values
     border_mode = cv2.BORDER_REFLECT101  # You may try different values
+    
 
     u, v = ps4.hierarchical_lk(urban_img_01, urban_img_02, levels, k_size,
                                k_type, sigma, interpolation, border_mode)
 
-    u_v = quiver(u, v, scale=1, stride=14)
+    u_v = quiver(u, v, scale=0.2, stride=10)
     cv2.imwrite(os.path.join(output_dir, "ps4-4-b-1.png"), u_v)
 
     interpolation = cv2.INTER_CUBIC  # You may try different values
@@ -332,7 +365,6 @@ def part_5a():
 
     Place all your work in this file and this section.
     """
-
     shift_0 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'Shift0.png'),
                          0) / 255.
     shift_10 = cv2.imread(os.path.join(input_dir, 'TestSeq', 'ShiftR10.png'),
@@ -340,25 +372,23 @@ def part_5a():
     
     interpolation = cv2.INTER_CUBIC  # You may try different values
     border_mode = cv2.BORDER_REFLECT101  # You may try different values
+    sigma = 0
+    shift_0_blur = cv2.GaussianBlur(src=shift_0,ksize=(33,33),sigmaX=sigma,sigmaY=sigma)
+    shift_r10_blur = cv2.GaussianBlur(src=shift_10,ksize=(33,33),sigmaX=sigma,sigmaY=sigma)
 
-    u, v = ps4.hierarchical_lk(shift_0, shift_10, levels=4, k_size=21, k_type="gaussian",
+    u, v = ps4.hierarchical_lk(shift_0_blur, shift_r10_blur, levels=4, k_size=33, k_type="uniform",
                                    sigma=10, interpolation=interpolation, border_mode=border_mode)
-    shift_02 = np.copy(shift_0)
-    shift_04 = np.copy(shift_0)
-    shift_06 = np.copy(shift_0)
-    shift_08 = np.copy(shift_0)
     
     
-    for i in range(shift_0.shape[0]):
-        for j in range(shift_0.shape[1]):
-            shift_02[np.clip(i+int(0.2*v[i,j]), 0, shift_0.shape[0]-1),np.clip(j+int(0.2*u[i,j]), 0, shift_0.shape[1]-1)] = (1-0.2)*shift_0[i,j] + 0.2*shift_10[i,j]
-            shift_04[np.clip(i+int(0.4*v[i,j]), 0, shift_0.shape[0]-1),np.clip(j+int(0.4*u[i,j]), 0, shift_0.shape[1]-1)] = (1-0.4)*shift_0[i,j] + 0.4*shift_10[i,j]
-            shift_06[np.clip(i+int(0.6*v[i,j]), 0, shift_0.shape[0]-1),np.clip(j+int(0.6*u[i,j]), 0, shift_0.shape[1]-1)] = (1-0.6)*shift_0[i,j] + 0.6*shift_10[i,j]
-            shift_08[np.clip(i+int(0.8*v[i,j]), 0, shift_0.shape[0]-1),np.clip(j+int(0.8*u[i,j]), 0, shift_0.shape[1]-1)] = (1-0.8)*shift_0[i,j] + 0.8*shift_10[i,j]
+    
+    
+    shift_02 = ps4.warp(shift_0,-0.2*u,-0.2*v,interpolation,border_mode)
+    shift_04 = ps4.warp(shift_0,-0.4*u,-0.4*v,interpolation,border_mode)
+    shift_06 = ps4.warp(shift_0,-0.6*u,-0.6*v,interpolation,border_mode)
+    shift_08 = ps4.warp(shift_0,-0.8*u,-0.8*v,interpolation,border_mode)
     
     output_image = np.zeros((2*shift_0.shape[0],3*shift_0.shape[1]))
     h,w = shift_0.shape[:2]
-    
     output_image[:h,:w]=shift_0
     output_image[:h,w:2*w]=shift_02
     output_image[:h,2*w:]=shift_04
@@ -368,6 +398,9 @@ def part_5a():
     
     
     cv2.imwrite(os.path.join(output_dir, "ps4-5-a-1.png"), ps4.normalize_and_scale(output_image))
+
+    
+    
     
     
 
@@ -379,8 +412,74 @@ def part_5b():
 
     Place all your work in this file and this section.
     """
+    minicoper_0 = cv2.imread(os.path.join(input_dir, 'MiniCooper',
+                                      'mc01.png'), 0) / 255.
+    minicoper_10 = cv2.imread(os.path.join(input_dir, 'MiniCooper',
+                                        'mc02.png'), 0) / 255.
+    
+    interpolation = cv2.INTER_CUBIC  # You may try different values
+    border_mode = cv2.BORDER_REFLECT101  # You may try different values
+    sigma = 20
+    minicoper_0_blur = cv2.GaussianBlur(src=minicoper_0,ksize=(115,115),sigmaX=sigma,sigmaY=sigma)
+    minicoper_10_blur = cv2.GaussianBlur(src=minicoper_10,ksize=(115,115),sigmaX=sigma,sigmaY=sigma)
 
-    raise NotImplementedError
+    u, v = ps4.hierarchical_lk(minicoper_0_blur, minicoper_10_blur, levels=6, k_size=115, k_type="uniform",
+                                   sigma=10, interpolation=interpolation, border_mode=border_mode)
+    
+    
+    
+    
+    minicoper_02 = ps4.warp(minicoper_0,-0.2*u,-0.2*v,interpolation,border_mode)
+    minicoper_04 = ps4.warp(minicoper_0,-0.4*u,-0.4*v,interpolation,border_mode)
+    minicoper_06 = ps4.warp(minicoper_0,-0.6*u,-0.6*v,interpolation,border_mode)
+    minicoper_08 = ps4.warp(minicoper_0,-0.8*u,-0.8*v,interpolation,border_mode)
+    
+    output_image = np.zeros((2*minicoper_0.shape[0],3*minicoper_0.shape[1]))
+    h,w = minicoper_0.shape[:2]
+    output_image[:h,:w]=minicoper_0
+    output_image[:h,w:2*w]=minicoper_02
+    output_image[:h,2*w:]=minicoper_04
+    output_image[h:,:w]=minicoper_06
+    output_image[h:,w:2*w]=minicoper_08
+    output_image[h:,2*w:]=minicoper_10
+    
+    
+    cv2.imwrite(os.path.join(output_dir, "ps4-5-b-1.png"), ps4.normalize_and_scale(output_image))
+    
+    #part b
+    minicoper_20 = cv2.imread(os.path.join(input_dir, 'MiniCooper',
+                                      'mc03.png'), 0) / 255.
+    
+    interpolation = cv2.INTER_CUBIC  # You may try different values
+    border_mode = cv2.BORDER_REFLECT101  # You may try different values
+    sigma = 15
+    minicoper_10_blur = cv2.GaussianBlur(src=minicoper_10,ksize=(101,101),sigmaX=sigma,sigmaY=sigma)
+    minicoper_20_blur = cv2.GaussianBlur(src=minicoper_20,ksize=(101,101),sigmaX=sigma,sigmaY=sigma)
+
+    u, v = ps4.hierarchical_lk(minicoper_10_blur, minicoper_20_blur, levels=6, k_size=90, k_type="uniform",
+                                   sigma=10, interpolation=interpolation, border_mode=border_mode)
+    
+    
+    
+    
+    minicoper_12 = ps4.warp(minicoper_10,-0.2*u,-0.2*v,interpolation,border_mode)
+    minicoper_14 = ps4.warp(minicoper_10,-0.4*u,-0.4*v,interpolation,border_mode)
+    minicoper_16 = ps4.warp(minicoper_10,-0.6*u,-0.6*v,interpolation,border_mode)
+    minicoper_18 = ps4.warp(minicoper_10,-0.8*u,-0.8*v,interpolation,border_mode)
+    
+    output_image = np.zeros((2*minicoper_10.shape[0],3*minicoper_10.shape[1]))
+    h,w = minicoper_10.shape[:2]
+    output_image[:h,:w]=minicoper_10
+    output_image[:h,w:2*w]=minicoper_12
+    output_image[:h,2*w:]=minicoper_14
+    output_image[h:,:w]=minicoper_16
+    output_image[h:,w:2*w]=minicoper_18
+    output_image[h:,2*w:]=minicoper_20
+    
+    
+    cv2.imwrite(os.path.join(output_dir, "ps4-5-b-2.png"), ps4.normalize_and_scale(output_image))
+
+    
 
 
 def part_6():
@@ -410,7 +509,7 @@ if __name__ == '__main__':
     #part_3a_1()
     #part_3a_2()
     #part_4a()
-    part_4b()
+    #part_4b()
     part_5a()
-    # part_5b()
+    part_5b()
     # part_6()
