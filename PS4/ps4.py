@@ -496,15 +496,17 @@ def classify_video(images):
       
   """
   
-  u_average_pos = 0
-  u_average_neg = 0
-  v_average_pos = 0
-  v_average_neg = 0
-  average_area_u= 0
-  average_area_v = 0
   total_area = images[0].shape[0]*images[0].shape[1]
-  num_frames = 10
+  num_frames = 7
+  num_max_frames = int(1.*num_frames)
+  # num_frames = int(0.8*len(images))
+  # num_max_frames = int(0.2*num_frames)
+  u_speed_pos = np.zeros(num_frames)
+  u_speed_neg = np.zeros(num_frames)
+  v_speed_pos = np.zeros(num_frames)
+  v_speed_neg = np.zeros(num_frames)
   for i in range(len(images[:num_frames])-1):
+  #for i in range(len(images[:num_frames])-1):
       
       if i == 0:
           continue
@@ -515,34 +517,34 @@ def classify_video(images):
       img1_blur = cv2.GaussianBlur(src=images[i],ksize=(21,21),sigmaX=sigma,sigmaY=sigma)
       u, v = hierarchical_lk(img0_blur, img1_blur, levels=4, k_size=21, k_type="gaussian",
                                      sigma=10, interpolation=interpolation, border_mode=border_mode)
-      average_area_u +=len(u[np.abs(u)>0.8*u.max()])
-      average_area_v +=len(v[np.abs(v)>0.8*v.max()])
-      if len(u[u>0])>0:
-          u_average_pos += u[u>0].mean()
-          print(u[u>0].mean())
-      if len(u[u<0])>0:                 
-          u_average_neg += u[u<0].mean()
-          print(u[u<0].mean())
-      if len(v[v>0])>0:
-          v_average_pos += v[v>0].mean()
-      if len(v[v<0])>0:
-          v_average_neg += v[v<0].mean()
+      area_u =len(u[np.abs(u)>0.6*u.max()])
+      area_v =len(v[np.abs(v)>0.6*v.max()])
+      if len(u[u>5])>0:
+          u_speed_pos[i] = u[u>5].mean()/(area_u+area_v)
+          #print(u_speed_pos[i])
+      if len(u[u<-5])>0:                 
+          u_speed_neg[i] = u[u<-5].mean()/(area_u+area_v)
+          #print(u_speed_neg[i])
+      if len(v[v>5])>0:
+          v_speed_pos[i] = v[v>5].mean()/(area_u+area_v)
+      if len(v[v<-5])>0:
+          v_speed_neg[i] = v[v<-5].mean()/(area_u+area_v)
       
+
+   #sort from largest to smallest for max
+   
+  u_speed_pos[::-1].sort()
+  v_speed_pos[::-1].sort()
+  #sort from smallest to largest for min
+  u_speed_neg.sort()
+  v_speed_neg.sort()
       
-  u_average_pos /= num_frames
-  u_average_neg /= num_frames
-  v_average_pos /= num_frames
-  v_average_neg /= num_frames
+  scale = 1000
+  average_max_speed_u_pos = scale*u_speed_pos[:num_max_frames].mean()/num_max_frames
+  average_max_speed_u_neg = scale*u_speed_neg[:num_max_frames].mean()/num_max_frames
+  average_max_speed_v_pos = scale*v_speed_pos[:num_max_frames].mean()/num_max_frames
+  average_max_speed_v_neg = scale*v_speed_neg[:num_max_frames].mean()/num_max_frames
   
   
-  average_area_u /= num_frames
-  average_area_v /= num_frames
   
-  scale = 10000
-  u2area_pos = scale*u_average_pos /(average_area_u + average_area_v)
-  u2area_neg = scale*u_average_neg  /(average_area_u + average_area_v)
-  v2area_pos = scale*v_average_pos /(average_area_u + average_area_v)
-  v2area_neg = scale*v_average_neg /(average_area_u + average_area_v)
-  
-  
-  return u2area_pos, u2area_neg,v2area_pos,v2area_neg
+  return average_max_speed_u_pos, average_max_speed_u_neg,average_max_speed_v_pos,average_max_speed_v_neg

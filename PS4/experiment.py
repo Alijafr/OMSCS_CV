@@ -427,12 +427,12 @@ def part_5b():
                                    sigma=10, interpolation=interpolation, border_mode=border_mode)
     
     
+    scale = 1.0
     
-    
-    minicoper_02 = ps4.warp(minicoper_0,-0.2*u,-0.2*v,interpolation,border_mode)
-    minicoper_04 = ps4.warp(minicoper_0,-0.4*u,-0.4*v,interpolation,border_mode)
-    minicoper_06 = ps4.warp(minicoper_0,-0.6*u,-0.6*v,interpolation,border_mode)
-    minicoper_08 = ps4.warp(minicoper_0,-0.8*u,-0.8*v,interpolation,border_mode)
+    minicoper_02 = ps4.warp(minicoper_0,-0.2*scale*u,-0.2*scale*v,interpolation,border_mode)
+    minicoper_04 = ps4.warp(minicoper_0,-0.4*scale*u,-0.4*scale*v,interpolation,border_mode)
+    minicoper_06 = ps4.warp(minicoper_0,-0.6*scale*u,-0.6*scale*v,interpolation,border_mode)
+    minicoper_08 = ps4.warp(minicoper_0,-0.8*scale*u,-0.8*scale*v,interpolation,border_mode)
     
     output_image = np.zeros((2*minicoper_0.shape[0],3*minicoper_0.shape[1]))
     h,w = minicoper_0.shape[:2]
@@ -462,10 +462,10 @@ def part_5b():
     
     
     
-    minicoper_12 = ps4.warp(minicoper_10,-0.2*u,-0.2*v,interpolation,border_mode)
-    minicoper_14 = ps4.warp(minicoper_10,-0.4*u,-0.4*v,interpolation,border_mode)
-    minicoper_16 = ps4.warp(minicoper_10,-0.6*u,-0.6*v,interpolation,border_mode)
-    minicoper_18 = ps4.warp(minicoper_10,-0.8*u,-0.8*v,interpolation,border_mode)
+    minicoper_12 = ps4.warp(minicoper_10,-0.2*scale*u,-0.2*scale*v,interpolation,border_mode)
+    minicoper_14 = ps4.warp(minicoper_10,-0.4*scale*u,-0.4*scale*v,interpolation,border_mode)
+    minicoper_16 = ps4.warp(minicoper_10,-0.6*scale*u,-0.6*scale*v,interpolation,border_mode)
+    minicoper_18 = ps4.warp(minicoper_10,-0.8*scale*u,-0.8*scale*v,interpolation,border_mode)
     
     output_image = np.zeros((2*minicoper_10.shape[0],3*minicoper_10.shape[1]))
     h,w = minicoper_10.shape[:2]
@@ -510,6 +510,6 @@ if __name__ == '__main__':
     #part_3a_2()
     #part_4a()
     #part_4b()
-    part_5a()
+    #part_5a()
     part_5b()
     # part_6()
