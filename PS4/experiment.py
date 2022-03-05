@@ -4,7 +4,7 @@ import os
 
 import cv2
 import numpy as np
-
+from sklearn.tree import DecisionTreeClassifier
 import ps4
 
 # I/O directories
@@ -334,18 +334,19 @@ def part_4b():
     urban_img_02 = cv2.imread(os.path.join(input_dir, 'Urban2', 'urban02.png'),
                               0) / 255.
 
-    levels = 6  # TODO: Define the number of levels
-    k_size = 15  # TODO: Select a kernel size
+    levels = 7  # TODO: Define the number of levels
+    k_size = 7  # TODO: Select a kernel size
     k_type = "uniform"  # TODO: Select a kernel type
-    sigma = 0  # TODO: Select a sigma value if you are using a gaussian kernel
+    sigma = 10 # TODO: Select a sigma value if you are using a gaussian kernel
     interpolation = cv2.INTER_CUBIC  # You may try different values
     border_mode = cv2.BORDER_REFLECT101  # You may try different values
     
+    urban_img_01 = cv2.GaussianBlur(src=urban_img_01,ksize=(k_size,k_size),sigmaX=sigma,sigmaY=sigma)
+    urban_img_02 = cv2.GaussianBlur(src=urban_img_02,ksize=(k_size,k_size),sigmaX=sigma,sigmaY=sigma)
+    u, v = ps4.hierarchical_lk(urban_img_01, urban_img_02, levels, 10,
+                               k_type, sigma, interpolation, border_mode,method=0)
 
-    u, v = ps4.hierarchical_lk(urban_img_01, urban_img_02, levels, k_size,
-                               k_type, sigma, interpolation, border_mode)
-
-    u_v = quiver(u, v, scale=0.2, stride=10)
+    u_v = quiver(u, v, scale=0.4, stride=10)
     cv2.imwrite(os.path.join(output_dir, "ps4-4-b-1.png"), u_v)
 
     interpolation = cv2.INTER_CUBIC  # You may try different values
@@ -497,19 +498,36 @@ def part_6():
     images_handclapping_1 = ps4.read_video(os.path.join(input_dir, "videos/person10_handclapping_d4_uncomp.avi"))
     images_handclapping_2 = ps4.read_video(os.path.join(input_dir, "videos/person14_handclapping_d3_uncomp.avi"))
     
+    images_list = [images_running_1,images_walking_1,images_handclapping_1,images_running_2,images_walking_2,images_handclapping_2] 
+    classes = np.array([1,2,3,1,2,3])
+    #get the training features for the first 3 videos
+    features = ps4.dataset(images_list[:3])
+    #treain the decision tree
+    clf = DecisionTreeClassifier(criterion="gini",splitter="best",random_state=2)
+    clf.fit(features,classes[:3])
+    
+    #calculate accuary 
+    count = 0
+    for i in range(len(images_list)):
+        predicted_class = ps4.classify_video(images_list[i], clf)
+        print ("video calss {}, classified as {}".format(classes[i], predicted_class))
+        if classes[i] == predicted_class:
+            count +=1
+    
+    print("accuracy: {} correct out of {}".format(count,len(images_list)))
 
 def nothing(x):
 	pass
 
 if __name__ == '__main__':
     
-    #part_1a()
-    #part_1b()
-    #part_2()
-    #part_3a_1()
-    #part_3a_2()
-    #part_4a()
-    #part_4b()
-    #part_5a()
+    part_1a()
+    part_1b()
+    part_2()
+    part_3a_1()
+    part_3a_2()
+    part_4a()
+    part_4b()
+    part_5a()
     part_5b()
-    # part_6()
+    part_6()

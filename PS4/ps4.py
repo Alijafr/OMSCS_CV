@@ -109,7 +109,7 @@ def gradient_y(image):
     return grad_y
 
 
-def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
+def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1,method=0):
     """Computes optic flow using the Lucas-Kanade method.
 
     For efficiency, you should apply a convolution-based method.
@@ -192,7 +192,10 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
     uv = np.zeros((m,n,2))
     epsilon = 1e-20
     #add more to the filter --> eig values need to be big && almost equal
-    mask = (det > epsilon) & (eig[:,:,0] > 0.000001) & (eig_ratio < 100)
+    if method == 0:
+        mask = (det > epsilon) & (eig[:,:,0] > 0.000001) & (eig_ratio < 100)
+    else:
+        mask = (det > epsilon)
     
     #vu = np.linalg.pinv(A)@B
     uv[mask,:] = np.linalg.solve(A[mask,:,:], B[mask,:])
@@ -408,7 +411,7 @@ def warp(image, U, V, interpolation, border_mode):
 
 
 def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
-                    border_mode):
+                    border_mode,method=0):
     """Computes the optic flow using Hierarchical Lucas-Kanade.
 
     This method should use reduce_image(), expand_image(), warp(),
@@ -451,13 +454,17 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
             expand_V = 2*expand_image(V)
             #now create the warp image from the the lowest level to next 
             reduced_a = gauss_a[iter_-i-1]
+            h,w = reduced_a.shape[:2]
+            expand_U = expand_U[:h,:w]
+            expand_V =expand_V[:h,:w]
+            
             #need to revert back, hencse the - U and -V
             warped_image_a =warp(reduced_a, -expand_U, -expand_V, interpolation, border_mode)
         else:
              #next level of b
              reduced_b = gauss_b[iter_-i]
              #do the optical flow for the next level
-             delt_U,delt_V = optic_flow_lk(warped_image_a, reduced_b, k_size, k_type,sigma)
+             delt_U,delt_V = optic_flow_lk(warped_image_a, reduced_b, k_size, k_type,sigma,method)
              U = pre_U +delt_U 
              V = pre_V + delt_V
              #expand , and warp again
@@ -466,6 +473,9 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
              expand_U = 2*expand_image(U)
              expand_V = 2*expand_image(V)
              reduced_a = gauss_a[iter_-i-1]
+             h,w = reduced_a.shape[:2]
+             expand_U = expand_U[:h,:w]
+             expand_V =expand_V[:h,:w]
              #need to revert back, hencse the - U and -V
              warped_image_a =warp(reduced_a, -expand_U, -expand_V, interpolation, border_mode)
              
@@ -473,7 +483,7 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
         pre_V = expand_V
         
     #now just apply the optical flow for the highest level 
-    delt_U,delt_V = optic_flow_lk(warped_image_a, img_b, k_size, k_type,sigma)
+    delt_U,delt_V = optic_flow_lk(warped_image_a, img_b, k_size, k_type,sigma,method)
     #add it to the previous displacements 
     U = pre_U +delt_U 
     V = pre_V + delt_V
@@ -482,9 +492,66 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
         
     
 
+def dataset (list_images):
+    features = np.zeros((len(list_images),4))
+    for m in range(len(list_images)):
+        
+        images = list_images[m]
+        feature = get_features(images)
+        
+         
+        #print(frame_u.mean(axis=0)[0])
+        features [m,:] =feature
+        
+        
+    return features
+        
+def get_features(images):
+    total_area = images[0].shape[0]*images[0].shape[1]
+    num_frames = 30
+    #num_max_frames = int(0.5*num_frames)
+    # num_frames = int(0.8*len(images))
+    # num_max_frames = int(0.2*num_frames)
     
+    frame_u = np.zeros((num_frames,2)).astype(np.float64())
+    frame_v = np.zeros((num_frames,2)).astype(np.float64())
+    feature = np.zeros((1,4))
+    for i in range(len(images[:num_frames])-1):
+        
+        if i == 0:
+            continue
+        interpolation = cv2.INTER_CUBIC  # You may try different values
+        border_mode = cv2.BORDER_REFLECT101  # You may try different values
+        sigma = 5
+        img_0 = images[i-1]
+        img_1 = images[i]
+        img_0 = cv2.GaussianBlur(src=img_0,ksize=(11,1),sigmaX=sigma,sigmaY=sigma)
+        img_1 = cv2.GaussianBlur(src=img_1,ksize=(11,11),sigmaX=sigma,sigmaY=sigma)
+        u, v = hierarchical_lk(img_0, img_1, levels=5, k_size=10, k_type="uniform",
+                                      sigma=10, interpolation=interpolation, border_mode=border_mode)
 
-def classify_video(images):
+        precetage = 0.1
+        #area_u =len(u[np.abs(u)>0])
+        #area_v =len(v[np.abs(v)>0])
+        if len(u[u>precetage*u.max()])>0:
+            frame_u[i,0] = u[u>precetage*u.max()].mean()/len(u[u>precetage*u.max()])
+        if len(v[v>precetage*v.max()])>0:
+            frame_v[i,0] = v[v>precetage*v.max()].mean()/len(v[v>precetage*v.max()])
+        if len(u[u<precetage*u.min()])>0:  
+            frame_u[i,1] = u[u<precetage*u.min()].mean()/(len(u[u<precetage*u.min()]))
+        if len(v[v<precetage*v.min()])>0:
+            frame_v[i,1] = v[v<precetage*v.min()].mean()/len(v[v<precetage*v.min()])
+        
+        #print(frame_u.mean(axis=0)[0])
+        feature [0,0] =frame_u.mean(axis=0)[0]
+        feature [0,1] =frame_u.mean(axis=0)[1]
+        feature [0,2] =frame_v.mean(axis=0)[0]
+        feature [0,3] =frame_v.mean(axis=0)[1]
+    return feature
+
+          
+
+def classify_video(images,clf):
   """Classifies a set of frames as either
     - int(1) == "Running"
     - int(2) == "Walking"
@@ -495,56 +562,8 @@ def classify_video(images):
       int:  Class of video
       
   """
-  
-  total_area = images[0].shape[0]*images[0].shape[1]
-  num_frames = 7
-  num_max_frames = int(1.*num_frames)
-  # num_frames = int(0.8*len(images))
-  # num_max_frames = int(0.2*num_frames)
-  u_speed_pos = np.zeros(num_frames)
-  u_speed_neg = np.zeros(num_frames)
-  v_speed_pos = np.zeros(num_frames)
-  v_speed_neg = np.zeros(num_frames)
-  for i in range(len(images[:num_frames])-1):
-  #for i in range(len(images[:num_frames])-1):
-      
-      if i == 0:
-          continue
-      interpolation = cv2.INTER_CUBIC  # You may try different values
-      border_mode = cv2.BORDER_REFLECT101  # You may try different values
-      sigma = 10
-      img0_blur = cv2.GaussianBlur(src=images[i-1],ksize=(21,21),sigmaX=sigma,sigmaY=sigma)
-      img1_blur = cv2.GaussianBlur(src=images[i],ksize=(21,21),sigmaX=sigma,sigmaY=sigma)
-      u, v = hierarchical_lk(img0_blur, img1_blur, levels=4, k_size=21, k_type="gaussian",
-                                     sigma=10, interpolation=interpolation, border_mode=border_mode)
-      area_u =len(u[np.abs(u)>0.6*u.max()])
-      area_v =len(v[np.abs(v)>0.6*v.max()])
-      if len(u[u>5])>0:
-          u_speed_pos[i] = u[u>5].mean()/(area_u+area_v)
-          #print(u_speed_pos[i])
-      if len(u[u<-5])>0:                 
-          u_speed_neg[i] = u[u<-5].mean()/(area_u+area_v)
-          #print(u_speed_neg[i])
-      if len(v[v>5])>0:
-          v_speed_pos[i] = v[v>5].mean()/(area_u+area_v)
-      if len(v[v<-5])>0:
-          v_speed_neg[i] = v[v<-5].mean()/(area_u+area_v)
-      
-
-   #sort from largest to smallest for max
-   
-  u_speed_pos[::-1].sort()
-  v_speed_pos[::-1].sort()
-  #sort from smallest to largest for min
-  u_speed_neg.sort()
-  v_speed_neg.sort()
-      
-  scale = 1000
-  average_max_speed_u_pos = scale*u_speed_pos[:num_max_frames].mean()/num_max_frames
-  average_max_speed_u_neg = scale*u_speed_neg[:num_max_frames].mean()/num_max_frames
-  average_max_speed_v_pos = scale*v_speed_pos[:num_max_frames].mean()/num_max_frames
-  average_max_speed_v_neg = scale*v_speed_neg[:num_max_frames].mean()/num_max_frames
+  feature = get_features(images)
+  return clf.predict(feature)
   
   
   
-  return average_max_speed_u_pos, average_max_speed_u_neg,average_max_speed_v_pos,average_max_speed_v_neg
