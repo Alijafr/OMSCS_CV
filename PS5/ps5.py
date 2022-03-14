@@ -25,7 +25,7 @@ class KalmanFilter(object):
             Q (numpy.array): Process noise array.
             R (numpy.array): Measurement noise array.
         """
-        self.state = np.array([init_x, init_y, 0., 0.])  # state
+        self.state = np.array([[init_x], [init_y], [0.], [0.]])  # state
         self.Q = Q
         self.R = R
         self.state_predicted = np.zeros_like(self.state)
@@ -50,7 +50,7 @@ class KalmanFilter(object):
     def correct(self, meas_x, meas_y):
         Y = np.array([[meas_x],
                            [meas_y]])
-        K = self.P@self.M.T@np.inv(self.M@self.P@self.M.T + self.R)
+        K = self.P@self.M.T@np.linalg.inv(self.M@self.P@self.M.T + self.R)
         
         self.state = self.state_predicted + K@(Y - self.M@self.state_predicted)
         I = np.eye(4)
@@ -60,7 +60,7 @@ class KalmanFilter(object):
         self.predict()
         self.correct(measurement_x, measurement_y)
 
-        return self.state[0], self.state[1]
+        return self.state[0][0], self.state[1][0]
 
 
 class ParticleFilter(object):
@@ -117,11 +117,19 @@ class ParticleFilter(object):
 
         self.template = template
         self.frame = frame
-        self.particles = None  # Initialize your particles array. Read the docstring.
-        self.weights = None  # Initialize your weights array. Read the docstring.
+        self.h ,self.w  = self.frame.shape[:2]
+        self.h_temp = self.template.shape[0]
+        self.w_temp = self.template.shape[1]
+        #xy_min = [0, 0]
+        #xy_max = [ self.w-1, self.h-1] # (x,y)
+        #self.particles = np.random.uniform(low=xy_min, high=xy_max, size=(self.num_particles,2))  # Initialize your particles array. Read the docstring.
+        templete_mean = np.array([self.template_rect["x"],self.template_rect["y"]])
+        cov = 10*np.eye(2)
+        self.particles = np.random.multivariate_normal(templete_mean, cov,size=(self.num_particles)) #initialize to the initial value of the particles
+        self.weights = np.ones(self.num_particles)/self.num_particles  # Initialize your weights array. Read the docstring.
         # Initialize any other components you may need when designing your filter.
 
-        raise NotImplementedError
+      
 
     def get_particles(self):
         """Returns the current particles state.
@@ -149,9 +157,11 @@ class ParticleFilter(object):
         Returns:
             float: similarity value.
         """
-        return NotImplementedError
+        diff_2 = (template - frame_cutout)**2
+        return diff_2.sum()
+        
 
-    def resample_particles(self):
+    def resample_particles(self,partcles = None):
         """Returns a new set of particles
 
         This method does not alter self.particles.
@@ -164,7 +174,17 @@ class ParticleFilter(object):
         Returns:
             numpy.array: particles data structure.
         """
-        return NotImplementedError
+        if partcles == None:
+            #to alter the number of particles 
+            particles = self.num_particles
+            
+        
+        indices = np.random.choice(np.arange(self.num_particles),size=particles,p=self.weights)
+        self.particles = self.particles[indices]
+        self.num_particles=  particles #in case the number of the partacles changed
+        
+        return self.particles
+        
 
     def process(self, frame):
         """Processes a video frame (image) and updates the filter's state.
@@ -184,8 +204,66 @@ class ParticleFilter(object):
         Returns:
             None.
         """
-        raise NotImplementedError
-
+        #resample the partcles according to their weights with replacement
+        self.particles = self.resample_particles() 
+        #update the particles assuming random movments 
+        self.particles += np.random.normal(0,self.sigma_dyn**2,size=self.particles.shape)
+        #update the weights
+        for i in range(self.num_particles):
+            particle = self.particles[i]
+            #make sure that the edge situation is handled
+            x_left = np.clip(int(particle[0] - 0.5*self.w_temp), 0, frame.shape[1]-1)
+            x_right = np.clip(int(particle[0] + 0.5*self.w_temp), 0,frame.shape[1]-1)
+            y_up = np.clip(int(particle[1] - 0.5*self.h_temp), 0, frame.shape[0]-1)
+            y_down = np.clip(int(particle[1] + 0.5*self.h_temp), 0, frame.shape[0]-1)
+            
+            if x_left == 0: #croped from the left
+                if y_up == 0: #croped both left and up 
+                    #get the cut image
+                    frame_cutout = frame[0:y_down, 0:x_right,:]
+                    template = self.template[self.h_temp-frame_cutout.shape[0]:,self.w_temp-frame_cutout.shape[1]:,:]
+                    
+                elif y_down == frame.shape[0]-1:
+                    #croped left and down
+                    print(y_up)
+                    print(y_down)
+                    print(self.h_temp)
+                    frame_cutout = frame[y_up:, 0:x_right,:]
+                    template = self.template[:frame_cutout.shape[0],self.w_temp-frame_cutout.shape[1]:,:]
+                    print(frame_cutout.shape)
+                    print(template.shape)
+                else:
+                    #only left cropped
+                    frame_cutout = frame[y_up:y_down, 0:int(particle[0]+0.5*self.w_temp)]
+                    template = self.template[:frame_cutout.shape[0],self.w_temp-frame_cutout.shape[1]:]
+            
+            elif x_right == frame.shape[1]-1:
+                if y_up == 0: #croped both left and up 
+                    #get the cut image
+                    frame_cutout = frame[0:int(particle[1]+0.5*self.h_temp), x_left:]
+                    template = self.template[self.h_temp-frame_cutout.shape[0]:,:frame_cutout.shape[1]]
+                elif y_down == frame.shape[0]-1:
+                    #croped left and down
+                    frame_cutout = frame[y_up:, x_left:]
+                    template = self.template[:frame_cutout.shape[0],:frame_cutout.shape[1]]
+                else:
+                    #only left cropped
+                    frame_cutout = frame[y_up:y_down, x_left:]
+                    template = self.template[:frame_cutout.shape[0],:frame_cutout.shape[1]]
+                    
+            else:
+                #no cropping 
+                frame_cutout = frame[y_up:y_down, x_left:x_right]
+                template = self.template[:frame_cutout.shape[0],:frame_cutout.shape[1]]
+                
+            MSE = self.get_error_metric(template, frame_cutout)
+            self.weights[i] = np.exp(-MSE/(2*self.sigma_exp**2))  
+                    
+            
+            
+        #normalize the weights 
+        self.weights = self.weights/self.weights.sum()
+        
     def render(self, frame_in):
         """Visualizes current particle filter state.
 
@@ -223,9 +301,30 @@ class ParticleFilter(object):
         for i in range(self.num_particles):
             x_weighted_mean += self.particles[i, 0] * self.weights[i]
             y_weighted_mean += self.particles[i, 1] * self.weights[i]
+            cv2.circle(frame_in, (self.particles[i, 0],self.particles[i, 1]), 5, (0,0,255),-1)
 
-        # Complete the rest of the code as instructed.
-        raise NotImplementedError
+        
+        center = [int(x_weighted_mean),int(y_weighted_mean)]
+        #make sure that the edge situation is handled 
+        if center[0] - int(self.w_temp/2) < 0:
+            #the particles is in the left of the image 
+            new_w = center[0] #just take the part that is in the image
+        elif center[0] + int(self.w_temp/2) > frame_in.shape[1]:
+            new_w = frame_in.shape[1] - center[0]
+        else:
+            new_w = self.w_temp
+        
+        if center[1] - int(self.h_temp/2) < 0:
+            #the particles is in the left of the image 
+            new_h = center[1] #just take the part that is in the image
+        elif center[1] + int(self.h_temp/2) > frame_in.shape[0]:
+            new_h = frame_in.shape[0] - center[1]
+        else:
+            new_h = self.h_temp
+        
+        pt1 = ( int(center[0] -0.5*new_w),int(center[1]-0.5*new_h))
+        pt2 = ( int(center[0] +0.5*new_w),int(center[1]+0.5*new_h))
+        cv2.rectangle(frame_in, pt1, pt2, (255,0,0))
 
 
 class AppearanceModelPF(ParticleFilter):
