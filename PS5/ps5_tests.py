@@ -206,9 +206,9 @@ class PS5_PF_Tests(unittest.TestCase):
         frame, template_rect, template, img_path, img_list, points_array = scene
 
         pf = ps5.AppearanceModelPF(frame, template,
-                                   num_particles=400,
-                                   sigma_exp=10., sigma_dyn=20.,
-                                   alpha=.05, template_coords=template_rect)
+                                    num_particles=400,
+                                    sigma_exp=10., sigma_dyn=20.,
+                                    alpha=.05, template_coords=template_rect)
 
         axes_shape = (50, 25)
         self.run_filter(pf, img_path, img_list, points_array, axes_shape)
@@ -222,9 +222,9 @@ class PS5_PF_Tests(unittest.TestCase):
         frame, template_rect, template, img_path, img_list, points_array = scene
 
         pf = ps5.AppearanceModelPF(frame, template,
-                                   num_particles=400,
-                                   sigma_exp=10., sigma_dyn=20.,
-                                   alpha=.05, template_coords=template_rect)
+                                    num_particles=400,
+                                    sigma_exp=10., sigma_dyn=20.,
+                                    alpha=.05, template_coords=template_rect)
 
         axes_shape = (50, 25)
         self.run_filter(pf, img_path, img_list, points_array, axes_shape)
@@ -238,9 +238,9 @@ class PS5_PF_Tests(unittest.TestCase):
         frame, template_rect, template, img_path, img_list, points_array = scene
 
         pf = ps5.AppearanceModelPF(frame, template,
-                                   num_particles=400,
-                                   sigma_exp=10., sigma_dyn=20.,
-                                   alpha=.05, template_coords=template_rect)
+                                    num_particles=400,
+                                    sigma_exp=10., sigma_dyn=20.,
+                                    alpha=.05, template_coords=template_rect)
 
         axes_shape = (50, 25)
         self.run_filter(pf, img_path, img_list, points_array, axes_shape)

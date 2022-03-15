@@ -115,8 +115,8 @@ class ParticleFilter(object):
         # The way to do it is:
         # self.some_parameter_name = kwargs.get('parameter_name', default_value)
 
-        self.template = template
-        self.frame = frame
+        self.template =  0.12*template[:,:,0] + 0.58*template[:,:,1] +0.3*template[:,:,2]
+        self.frame = 0.12*frame[:,:,0] + 0.58*frame[:,:,1] +0.3*frame[:,:,2]
         self.h ,self.w  = self.frame.shape[:2]
         self.h_temp = self.template.shape[0]
         self.w_temp = self.template.shape[1]
@@ -124,7 +124,7 @@ class ParticleFilter(object):
         #xy_max = [ self.w-1, self.h-1] # (x,y)
         #self.particles = np.random.uniform(low=xy_min, high=xy_max, size=(self.num_particles,2))  # Initialize your particles array. Read the docstring.
         templete_mean = np.array([self.template_rect["x"],self.template_rect["y"]])
-        cov = 10*np.eye(2)
+        cov = 5*np.eye(2)
         self.particles = np.random.multivariate_normal(templete_mean, cov,size=(self.num_particles)) #initialize to the initial value of the particles
         self.weights = np.ones(self.num_particles)/self.num_particles  # Initialize your weights array. Read the docstring.
         # Initialize any other components you may need when designing your filter.
@@ -157,8 +157,10 @@ class ParticleFilter(object):
         Returns:
             float: similarity value.
         """
-        diff_2 = (template - frame_cutout)**2
-        return diff_2.sum()
+        template = template.astype(np.float64)
+        frame_cutout = frame_cutout.astype(np.float64)
+        MSE = np.sum((template - frame_cutout)**2 )/ (template.shape[0]*template.shape[1])
+        return MSE
         
 
     def resample_particles(self,partcles = None):
@@ -185,7 +187,106 @@ class ParticleFilter(object):
         
         return self.particles
         
+    ### below function do better assuming the object goes partly out of the image
+    
+    # def process(self, frame):
+    #     """Processes a video frame (image) and updates the filter's state.
 
+    #     Implement the particle filter in this method returning None
+    #     (do not include a return call). This function should update the
+    #     particles and weights data structures.
+
+    #     Make sure your particle filter is able to cover the entire area of the
+    #     image. This means you should address particles that are close to the
+    #     image borders.
+
+    #     Args:
+    #         frame (numpy.array): color BGR uint8 image of current video frame,
+    #                              values in [0, 255].
+
+    #     Returns:
+    #         None.
+    #     """
+    #     frame =  0.12*frame[:,:,0] + 0.58*frame[:,:,1] +0.3*frame[:,:,2]
+        
+    #     #update the particles assuming random movments 
+    #     self.particles += np.random.normal(0,self.sigma_dyn**2,size=self.particles.shape)
+    #     #make sure no particles goes out the frame
+    #     self.particles[ self.particles<0] = 0
+    #     self.particles[self.particles[:,0]>frame.shape[1]-1,0] = frame.shape[1]-1
+    #     self.particles[self.particles[:,1]>frame.shape[0]-1,1] = frame.shape[0]-1
+    #     #print("templeate size: ",self.template.shape)
+        
+    #     for i in range(self.num_particles):
+    #         particle = self.particles[i]
+    #         #make sure that the edge situation is handled
+    #         x_left = np.clip(int(particle[0] - 0.5*self.w_temp), 0, frame.shape[1]-1)
+    #         x_right = np.clip(int(particle[0] + 0.5*self.w_temp), 0,frame.shape[1]-1)
+    #         y_up = np.clip(int(particle[1] - 0.5*self.h_temp), 0, frame.shape[0]-1)
+    #         y_down = np.clip(int(particle[1] + 0.5*self.h_temp), 0, frame.shape[0]-1)
+            
+    #         if x_left == 0: #croped from the left
+    #             if y_up == 0: #croped both left and up 
+    #                 #get the cut image
+    #                 #print("left up")
+    #                 frame_cutout = frame[0:y_down, 0:x_right]
+    #                 template = self.template[self.h_temp-frame_cutout.shape[0]:,self.w_temp-frame_cutout.shape[1]:]
+                    
+    #             elif y_down == frame.shape[0]-1:
+    #                 #croped left and down
+    #                 #print("left down")
+    #                 frame_cutout = frame[y_up:, 0:x_right]
+    #                 template = self.template[:frame_cutout.shape[0],self.w_temp-frame_cutout.shape[1]:]
+                
+    #             else:
+    #                 #only left cropped
+    #                 #print("left only")
+    #                 frame_cutout = frame[y_up:y_down, 0:x_right]
+    #                 #print("x_right: ",x_right)
+    #                 #print("left only : ", frame_cutout.shape) 
+    #                 template = self.template[:frame_cutout.shape[0],self.w_temp-frame_cutout.shape[1]:]
+    #                 #print("left only template: ",template.shape )
+            
+    #         elif x_right == frame.shape[1]-1:
+    #             if y_up == 0: #croped both left and up 
+    #                 #get the cut image
+    #                 #print("right up")
+    #                 frame_cutout = frame[0:int(particle[1]+0.5*self.h_temp), x_left:]
+    #                 template = self.template[self.h_temp-frame_cutout.shape[0]:,:frame_cutout.shape[1]]
+    #             elif y_down == frame.shape[0]-1:
+    #                 #print("right down")
+    #                 #croped left and down
+    #                 frame_cutout = frame[y_up:, x_left:]
+    #                 template = self.template[:frame_cutout.shape[0],:frame_cutout.shape[1]]
+    #             else:
+    #                 #only left cropped
+    #                 #print("right only")
+    #                 frame_cutout = frame[y_up:y_down, x_left:]
+    #                 template = self.template[:frame_cutout.shape[0],:frame_cutout.shape[1]]
+                    
+    #         else:
+    #             #no cropping 
+    #             #print("no cropping")
+    #             frame_cutout = frame[y_up:y_down, x_left:x_right]
+    #             template = self.template[:frame_cutout.shape[0],:frame_cutout.shape[1]]
+            
+            
+    #         frame_cutout = frame_cutout[:template.shape[0],:template.shape[1]]
+    #         MSE = self.get_error_metric(template, frame_cutout)
+    #         #print(MSE)
+    #         self.weights[i] = np.exp(-1*MSE/(2*self.sigma_exp**2)) 
+            
+            
+           
+                    
+            
+    #     #print(self.weights)    
+    #     #normalize the weights 
+    #     self.weights = self.weights/self.weights.sum()
+    #     #resample the partcles according to their weights with replacement
+    #     self.particles = self.resample_particles() 
+    
+    #this do better assuming the whole image is visible all the times in the frame
     def process(self, frame):
         """Processes a video frame (image) and updates the filter's state.
 
@@ -204,65 +305,35 @@ class ParticleFilter(object):
         Returns:
             None.
         """
-        #resample the partcles according to their weights with replacement
-        self.particles = self.resample_particles() 
-        #update the particles assuming random movments 
-        self.particles += np.random.normal(0,self.sigma_dyn**2,size=self.particles.shape)
-        #update the weights
-        for i in range(self.num_particles):
-            particle = self.particles[i]
-            #make sure that the edge situation is handled
-            x_left = np.clip(int(particle[0] - 0.5*self.w_temp), 0, frame.shape[1]-1)
-            x_right = np.clip(int(particle[0] + 0.5*self.w_temp), 0,frame.shape[1]-1)
-            y_up = np.clip(int(particle[1] - 0.5*self.h_temp), 0, frame.shape[0]-1)
-            y_down = np.clip(int(particle[1] + 0.5*self.h_temp), 0, frame.shape[0]-1)
+
+        # converted the image to a weighted one channel object
+        frame =  0.12*frame[:,:,0] + 0.58*frame[:,:,1] +0.3*frame[:,:,2]
+        max_x_start = frame.shape[1] - self.template.shape[1]
+        max_y_start = frame.shape[0] - self.template.shape[0]
+        for i in range(self.particles.shape[0]):
+            #add noise to particle
+            self.particles[i] = self.particles[i] + np.random.normal(0,self.sigma_dyn,self.particles[i].shape)
+
+            #get the start point of the tracked object object
+            start_x = int(self.particles[i][0] - int(self.template.shape[1]/2))
+            start_y = int(self.particles[i][1] - int(self.template.shape[0]/2))
+            #overflow control
+            if start_x > max_x_start:
+                start_x = max_x_start
+            elif start_x < 0:
+                start_x = 0
             
-            if x_left == 0: #croped from the left
-                if y_up == 0: #croped both left and up 
-                    #get the cut image
-                    frame_cutout = frame[0:y_down, 0:x_right,:]
-                    template = self.template[self.h_temp-frame_cutout.shape[0]:,self.w_temp-frame_cutout.shape[1]:,:]
-                    
-                elif y_down == frame.shape[0]-1:
-                    #croped left and down
-                    print(y_up)
-                    print(y_down)
-                    print(self.h_temp)
-                    frame_cutout = frame[y_up:, 0:x_right,:]
-                    template = self.template[:frame_cutout.shape[0],self.w_temp-frame_cutout.shape[1]:,:]
-                    print(frame_cutout.shape)
-                    print(template.shape)
-                else:
-                    #only left cropped
-                    frame_cutout = frame[y_up:y_down, 0:int(particle[0]+0.5*self.w_temp)]
-                    template = self.template[:frame_cutout.shape[0],self.w_temp-frame_cutout.shape[1]:]
-            
-            elif x_right == frame.shape[1]-1:
-                if y_up == 0: #croped both left and up 
-                    #get the cut image
-                    frame_cutout = frame[0:int(particle[1]+0.5*self.h_temp), x_left:]
-                    template = self.template[self.h_temp-frame_cutout.shape[0]:,:frame_cutout.shape[1]]
-                elif y_down == frame.shape[0]-1:
-                    #croped left and down
-                    frame_cutout = frame[y_up:, x_left:]
-                    template = self.template[:frame_cutout.shape[0],:frame_cutout.shape[1]]
-                else:
-                    #only left cropped
-                    frame_cutout = frame[y_up:y_down, x_left:]
-                    template = self.template[:frame_cutout.shape[0],:frame_cutout.shape[1]]
-                    
-            else:
-                #no cropping 
-                frame_cutout = frame[y_up:y_down, x_left:x_right]
-                template = self.template[:frame_cutout.shape[0],:frame_cutout.shape[1]]
-                
-            MSE = self.get_error_metric(template, frame_cutout)
-            self.weights[i] = np.exp(-MSE/(2*self.sigma_exp**2))  
-                    
-            
-            
-        #normalize the weights 
-        self.weights = self.weights/self.weights.sum()
+            if start_y > max_y_start:
+                start_y = max_y_start
+            elif start_y < 0:
+                start_y = 0
+
+            frame_cutout = frame[start_y:(start_y + self.template.shape[0]),start_x:(start_x + self.template.shape[1])]
+            MSE = self.get_error_metric(self.template,frame_cutout)
+            self.weights[i] = np.exp(-1*MSE/(2*self.sigma_exp**2)) 
+
+        self.weights =  self.weights/np.sum(self.weights)
+        self.particles = self.resample_particles()
         
     def render(self, frame_in):
         """Visualizes current particle filter state.
@@ -297,11 +368,12 @@ class ParticleFilter(object):
 
         x_weighted_mean = 0
         y_weighted_mean = 0
-
+        #print(self.weights)
+        #print(self.particles)
         for i in range(self.num_particles):
             x_weighted_mean += self.particles[i, 0] * self.weights[i]
             y_weighted_mean += self.particles[i, 1] * self.weights[i]
-            cv2.circle(frame_in, (self.particles[i, 0],self.particles[i, 1]), 5, (0,0,255),-1)
+            cv2.circle(frame_in, (int(self.particles[i, 0]),int(self.particles[i, 1])), 2, (0,0,255),-1)
 
         
         center = [int(x_weighted_mean),int(y_weighted_mean)]
@@ -419,9 +491,9 @@ def part_1c(obj_class, template_loc, save_frames, input_folder):
 
 
 def part_2a(obj_class, template_loc, save_frames, input_folder):
-    num_particles = 0  # Define the number of particles
-    sigma_mse = 0  # Define the value of sigma for the measurement exponential equation
-    sigma_dyn = 0  # Define the value of sigma for the particles movement (dynamics)
+    num_particles = 500  # Define the number of particles
+    sigma_mse = 10  # Define the value of sigma for the measurement exponential equation
+    sigma_dyn = 5  # Define the value of sigma for the particles movement (dynamics)
 
     out = run_particle_filter(
         obj_class,  # particle filter model class
@@ -436,9 +508,9 @@ def part_2a(obj_class, template_loc, save_frames, input_folder):
 
 
 def part_2b(obj_class, template_loc, save_frames, input_folder):
-    num_particles = 0  # Define the number of particles
-    sigma_mse = 0  # Define the value of sigma for the measurement exponential equation
-    sigma_dyn = 0  # Define the value of sigma for the particles movement (dynamics)
+    num_particles = 500  # Define the number of particles
+    sigma_mse = 10  # Define the value of sigma for the measurement exponential equation
+    sigma_dyn = 5  # Define the value of sigma for the particles movement (dynamics)
 
     out = run_particle_filter(
         obj_class,  # particle filter model class
