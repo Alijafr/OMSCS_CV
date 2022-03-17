@@ -123,9 +123,9 @@ class ParticleFilter(object):
         #xy_min = [0, 0]
         #xy_max = [ self.w-1, self.h-1] # (x,y)
         #self.particles = np.random.uniform(low=xy_min, high=xy_max, size=(self.num_particles,2))  # Initialize your particles array. Read the docstring.
-        templete_mean = np.array([self.template_rect["x"],self.template_rect["y"]])
+        self.templete_mean = np.array([self.template_rect["x"],self.template_rect["y"]])
         cov = 5*np.eye(2)
-        self.particles = np.random.multivariate_normal(templete_mean, cov,size=(self.num_particles)) #initialize to the initial value of the particles
+        self.particles = np.random.multivariate_normal(self.templete_mean, cov,size=(self.num_particles)) #initialize to the initial value of the particles
         self.weights = np.ones(self.num_particles)/self.num_particles  # Initialize your weights array. Read the docstring.
         # Initialize any other components you may need when designing your filter.
 
@@ -310,7 +310,7 @@ class ParticleFilter(object):
         frame =  0.12*frame[:,:,0] + 0.58*frame[:,:,1] +0.3*frame[:,:,2]
         max_x_start = frame.shape[1] - self.template.shape[1]
         max_y_start = frame.shape[0] - self.template.shape[0]
-        for i in range(self.particles.shape[0]):
+        for i in range(self.num_particles):
             #add noise to particle
             self.particles[i] = self.particles[i] + np.random.normal(0,self.sigma_dyn,self.particles[i].shape)
 
@@ -376,26 +376,26 @@ class ParticleFilter(object):
             cv2.circle(frame_in, (int(self.particles[i, 0]),int(self.particles[i, 1])), 2, (0,0,255),-1)
 
         
-        center = [int(x_weighted_mean),int(y_weighted_mean)]
-        #make sure that the edge situation is handled 
-        if center[0] - int(self.w_temp/2) < 0:
-            #the particles is in the left of the image 
-            new_w = center[0] #just take the part that is in the image
-        elif center[0] + int(self.w_temp/2) > frame_in.shape[1]:
-            new_w = frame_in.shape[1] - center[0]
-        else:
-            new_w = self.w_temp
+        self.templete_mean = np.array([int(x_weighted_mean),int(y_weighted_mean)])
+        # #make sure that the edge situation is handled 
+        # if self.templete_mean[0] - int(self.w_temp/2) < 0:
+        #     #the particles is in the left of the image 
+        #     new_w = self.templete_mean[0] #just take the part that is in the image
+        # elif self.templete_mean[0] + int(self.w_temp/2) > frame_in.shape[1]:
+        #     new_w = frame_in.shape[1] - self.templete_mean[0]
+        # else:
+        #     new_w = self.w_temp
         
-        if center[1] - int(self.h_temp/2) < 0:
-            #the particles is in the left of the image 
-            new_h = center[1] #just take the part that is in the image
-        elif center[1] + int(self.h_temp/2) > frame_in.shape[0]:
-            new_h = frame_in.shape[0] - center[1]
-        else:
-            new_h = self.h_temp
+        # if self.templete_mean[1] - int(self.h_temp/2) < 0:
+        #     #the particles is in the left of the image 
+        #     new_h = self.templete_mean[1] #just take the part that is in the image
+        # elif self.templete_mean[1] + int(self.h_temp/2) > frame_in.shape[0]:
+        #     new_h = frame_in.shape[0] - self.templete_mean[1]
+        # else:
+        #     new_h = self.h_temp
         
-        pt1 = ( int(center[0] -0.5*new_w),int(center[1]-0.5*new_h))
-        pt2 = ( int(center[0] +0.5*new_w),int(center[1]+0.5*new_h))
+        pt1 = ( int(self.templete_mean[0] -0.5*self.w_temp),int(self.templete_mean[1]-0.5*self.h_temp))
+        pt2 = ( int(self.templete_mean[0] +0.5*self.w_temp),int(self.templete_mean[1]+0.5*self.h_temp))
         cv2.rectangle(frame_in, pt1, pt2, (255,0,0))
 
 
@@ -434,8 +434,69 @@ class AppearanceModelPF(ParticleFilter):
         Returns:
             None.
         """
-        raise NotImplementedError
+        # converted the image to a weighted one channel object
+        frame =  0.12*frame[:,:,0] + 0.58*frame[:,:,1] +0.3*frame[:,:,2]
+        max_x_start = frame.shape[1] - self.template.shape[1]
+        max_y_start = frame.shape[0] - self.template.shape[0]
+        for i in range(self.num_particles):
+            #add noise to particle
+            self.particles[i] = self.particles[i] + np.random.normal(0,self.sigma_dyn,self.particles[i].shape)
 
+            #get the start point of the tracked object object
+            start_x = int(self.particles[i][0] - self.template.shape[1]/2)
+            start_y = int(self.particles[i][1] - self.template.shape[0]/2)
+            #assuming no occlusion, these ideally not good particles 
+            if start_x > max_x_start:
+                start_x = max_x_start
+            elif start_x < 0:
+                start_x = 0
+            
+            if start_y > max_y_start:
+                start_y = max_y_start
+            elif start_y < 0:
+                start_y = 0
+
+            frame_cutout = frame[start_y:(start_y + self.template.shape[0]),start_x:(start_x + self.template.shape[1])]
+            MSE = self.get_error_metric(self.template,frame_cutout)
+            self.weights[i] = np.exp(-1*MSE/(2*self.sigma_exp**2)) 
+        
+        #print("weights max: ", np.max(self.weights))
+        self.weights =  self.weights/np.sum(self.weights)
+            
+        #only update the once there are particles with high weight --> less error
+        try:
+            normalizer = 10.0/self.sigma_exp # inverse relation with max 
+        except:
+            normalizer = 10.0 #default value when sigma is 0
+        if self.weights.max() > 0.05*normalizer: #normalizer used to adjust for different sigam (tuned for sigma =10)
+            #update the template 
+            
+            # start_y = int(self.templete_mean[1]-self.h_temp/2)
+            # start_x = int(self.templete_mean[0]-self.w_temp/2)
+            
+            #try taking the particle with the least error (highest weighting)
+            best_particle = self.particles[np.argmax(self.weights)]
+            
+            start_y = int(best_particle[1]-self.h_temp/2)
+            start_x = int(best_particle[0]-self.w_temp/2)
+            
+             
+            if start_x > max_x_start:
+                start_x = max_x_start
+            elif start_x < 0:
+                start_x = 0
+            
+            if start_y > max_y_start:
+                start_y = max_y_start
+            elif start_y < 0:
+                start_y = 0
+            
+            new_template = frame[start_y:(start_y+self.h_temp), start_x:(start_x+self.w_temp)]
+            #apply the Infinite Impulse Response (IIR) filter
+            self.template = self.alpha*new_template + (1-self.alpha)*self.template
+        
+        
+        self.particles = self.resample_particles()
 
 class MDParticleFilter(AppearanceModelPF):
     """A variation of particle filter tracker that incorporates more dynamics."""
@@ -525,10 +586,10 @@ def part_2b(obj_class, template_loc, save_frames, input_folder):
 
 
 def part_3(obj_class, template_rect, save_frames, input_folder):
-    num_particles = 0  # Define the number of particles
-    sigma_mse = 0  # Define the value of sigma for the measurement exponential equation
-    sigma_dyn = 0  # Define the value of sigma for the particles movement (dynamics)
-    alpha = 0  # Set a value for alpha
+    num_particles = 500  # Define the number of particles
+    sigma_mse = 10  # Define the value of sigma for the measurement exponential equation
+    sigma_dyn = 5  # Define the value of sigma for the particles movement (dynamics)
+    alpha = 0.3  # Set a value for alpha
 
     out = run_particle_filter(
         obj_class,  # particle filter model class
