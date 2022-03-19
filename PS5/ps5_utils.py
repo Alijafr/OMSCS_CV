@@ -69,6 +69,7 @@ def run_particle_filter(filter_class, imgs_dir, template_rect,
             out_frame = frame.copy()
             pf.render(out_frame)
             cv2.imshow('Tracking', out_frame)
+            cv2.imshow('template', pf.template.astype(np.uint8))
             cv2.waitKey(1)
 
         # Render and save output, if indicated
