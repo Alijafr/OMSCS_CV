@@ -26,7 +26,7 @@ def load_images(folder, size=(32, 32)):
     X = np.zeros((len(images_files),size[0]*size[1]))
     for i in range(len(images_files)):
         img = cv2.imread(os.path.join(folder,images_files[i]),0)
-        img = cv2.resize(img,size)
+        img = cv2.resize(img,size,interpolation=cv2.INTER_CUBIC)
         X[i,:] = img.flatten()
         split_words = images_files[i].split(".")
         y[i] = int(split_words[0][-2:])
@@ -96,7 +96,7 @@ def pca(X, k):
 
     Args:
         X (numpy.array): 2D data array of flatten images (row:observations,
-                         col:features) (float).
+                          col:features) (float).
         k (int): new dimension space
 
     Returns:
@@ -104,20 +104,21 @@ def pca(X, k):
             eigenvectors (numpy.array): 2D array with the top k eigenvectors.
             eigenvalues (numpy.array): array with the top k eigenvalues.
     """
-    M = X.shape[0]
+    #M = X.shape[0]
     u = get_mean_face(X)
-    sigma = ((X-u)@(X-u).T)
     
+    #sigma = ((X-u)@(X-u).T) #this is wrong, you want to sum over the number of images 
     
+    #no need to normalized since np.linalg.eigh gives a normalized eigen vectors 
+    sigma = (X-u).T@(X-u)
     #get the eigenvalues and eigenvectors
-    w, v = np.linalg.eigh(sigma)
+    eigvalues, eigvectors = np.linalg.eigh(sigma)
     #reverse the eig values and vectors (given in asending order)
-    w = w[::-1][:k]
-    v =v[::-1][:k]
+    eigvalues = eigvalues[::-1][:k]
+    #reverse the matrix in the columns directoin then pick the highest k eigenvectors 
+    eigvectors =eigvectors[:,::-1][:,:k] 
     
-    return v, w
-    
-
+    return eigvectors, eigvalues
 
 class Boosting:
     """Boosting classifier.
