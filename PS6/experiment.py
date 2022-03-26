@@ -9,7 +9,7 @@ import ps6
 
 # I/O directories
 INPUT_DIR = "input_images"
-OUTPUT_DIR = "./"
+OUTPUT_DIR = "output/"
 
 YALE_FACES_DIR = os.path.join(INPUT_DIR, 'Yalefaces')
 FRUITS_DIR = os.path.join(INPUT_DIR, 'fruits')
@@ -88,7 +88,7 @@ def part_1a_1b():
     k = 10
     eig_vecs, eig_vals = ps6.pca(X, k)
 
-    plot_eigen_faces(eig_vecs.T, "ps6-1-b-1.png")
+    plot_eigen_faces(eig_vecs.T, os.path.join(OUTPUT_DIR,"ps6-1-b-1.png"))
 
 
 def part_1c():
@@ -110,7 +110,9 @@ def part_1c():
 
     good = 0
     bad = 0
-
+    #to get the perfomance of the random classifier
+    rand_corrects = 0
+    rand_label = np.random.randint(low=1,high=16,size=len(Xtest))
     for i, obs in enumerate(Xtest_proj):
 
         dist = [np.linalg.norm(obs - x) for x in Xtrain_proj]
@@ -123,9 +125,14 @@ def part_1c():
 
         else:
             bad += 1
-
+        
+        if rand_label[i] == ytest[i]:
+            rand_corrects +=1
+    
+    print('random {0:.2f}% accuracy'.format(100 * float(rand_corrects) / len(ytest)))
     print('Good predictions = ', good, 'Bad predictions = ', bad)
-    print('{0:.2f}% accuracy'.format(100 * float(good) / (good + bad)))
+    print('PCA {0:.2f}% accuracy'.format(100 * float(good) / (good + bad)))
+    
 
 
 def part_2a():
@@ -153,8 +160,11 @@ def part_2a():
     # Picking random numbers
     rand_y = np.random.choice([-1, 1], (len(ytrain)))
     # TODO: find which of these labels match ytrain and report its accuracy
-    rand_accuracy = None
-    raise NotImplementedError
+    corrects = 0 
+    for i in range(len(ytrain)):
+        if rand_y[i] ==ytrain[i]:
+            corrects+=1
+    rand_accuracy = 100*corrects/len(ytrain)
     print('(Random) Training accuracy: {0:.2f}%'.format(rand_accuracy))
 
     # Using Weak Classifier
@@ -163,8 +173,11 @@ def part_2a():
     wk_clf.train()
     wk_results = [wk_clf.predict(x) for x in Xtrain]
     # TODO: find which of these labels match ytrain and report its accuracy
-    wk_accuracy = None
-    raise NotImplementedError
+    wk_corrects = 0
+    for i in range(len(ytrain)):
+        if wk_results[i] ==ytrain[i]:
+            wk_corrects+=1
+    wk_accuracy = 100*corrects/len(ytrain)
     print('(Weak) Training accuracy {0:.2f}%'.format(wk_accuracy))
 
     num_iter = 5
@@ -178,21 +191,32 @@ def part_2a():
     # Picking random numbers
     rand_y = np.random.choice([-1, 1], (len(ytest)))
     # TODO: find which of these labels match ytest and report its accuracy
-    rand_accuracy = None
-    raise NotImplementedError
+    corrects = 0 
+    for i in range(len(ytest)):
+        if rand_y[i] ==ytest[i]:
+            corrects+=1
+    rand_accuracy = 100*corrects/len(ytest)
     print('(Random) Testing accuracy: {0:.2f}%'.format(rand_accuracy))
 
     # Using Weak Classifier
     wk_results = [wk_clf.predict(x) for x in Xtest]
     # TODO: find which of these labels match ytest and report its accuracy
-    wk_accuracy = None
-    raise NotImplementedError
+    wk_corrects = 0
+    for i in range(len(ytest)):
+        if wk_results[i] ==ytest[i]:
+            wk_corrects+=1
+    wk_accuracy = 100*corrects/len(ytest)
     print('(Weak) Testing accuracy {0:.2f}%'.format(wk_accuracy))
 
     y_pred = boost.predict(Xtest)
     # TODO: find which of these labels match ytest and report its accuracy
-    boost_accuracy = None
-    raise NotImplementedError
+    boost_corrects = 0
+    for i in range(len(ytest)):
+        if y_pred[i] == ytest[i]:
+            boost_corrects += 1
+        
+    boost_accuracy = 100 *boost_corrects/len(ytest)
+
     print('(Boosting) Testing accuracy {0:.2f}%'.format(boost_accuracy))
 
 
@@ -201,10 +225,19 @@ def part_3a():
     instructions document."""
 
     feature1 = ps6.HaarFeature((2, 1), (25, 30), (50, 100))
-    feature1.preview((200, 200), filename="ps6-3-a-1.png")
+    feature1.preview((200, 200), filename="ps6-3-a-1")
 
-    # TODO: Generate and save all required images
-    raise NotImplementedError
+    feature2 = ps6.HaarFeature((1, 2), (10, 25), (50, 150))
+    feature2.preview((200, 200), filename='ps6-3-a-2')
+
+    feature3 = ps6.HaarFeature((3, 1), (50, 50), (100, 50))
+    feature3.preview((200, 200), filename='ps6-3-a-3')
+
+    feature4 = ps6.HaarFeature((1, 3), (50, 125), (100, 50))
+    feature4.preview((200, 200), filename='ps6-3-a-4')
+
+    feature5 = ps6.HaarFeature((2, 2), (50, 25), (100, 150))
+    feature5.preview((200, 200), filename='ps6-3-a-5')
 
 
 def part_4_a_b():
@@ -227,8 +260,8 @@ def part_4_a_b():
     VJ.haarFeatures[VJ.classifiers[1].feature].preview(filename="ps6-4-b-2")
 
     predictions = VJ.predict(images)
-    vj_accuracy = None
-    raise NotImplementedError
+    corrects_predictions = [1 for i in range(len(predictions)) if predictions[i]==labels[i]]
+    vj_accuracy = 100*len(corrects_predictions)/len(images)
     print("Prediction accuracy on training: {0:.2f}%".format(vj_accuracy))
 
     pos2 = load_images_from_dir(POS2_DIR)
@@ -240,26 +273,27 @@ def part_4_a_b():
     real_labels = np.array(len(test_pos) * [1] + len(test_neg) * [-1])
     predictions = VJ.predict(test_images)
 
-    vj_accuracy = None
-    raise NotImplementedError
+    corrects_predictions = [1 for i in range(len(predictions)) if predictions[i]==real_labels[i]]
+    vj_accuracy = 100*len(corrects_predictions)/len(test_images)
     print("Prediction accuracy on testing: {0:.2f}%".format(vj_accuracy))
 
 
 def part_4_c():
     pos = load_images_from_dir(POS_DIR)[:20]
     neg = load_images_from_dir(NEG_DIR)
-
+    neg2 = load_images_from_dir(NEG2_DIR)
+    #neg += neg2
     images = pos + neg
 
     integral_images = ps6.convert_images_to_integral_images(images)
     VJ = ps6.ViolaJones(pos, neg, integral_images)
     VJ.createHaarFeatures()
 
-    VJ.train(4)
+    VJ.train(5)
 
     image = cv2.imread(os.path.join(INPUT_DIR, "man.jpeg"), -1)
     image = cv2.resize(image, (120, 60))
-    VJ.faceDetection(image, filename="ps4-4-c-1")
+    VJ.faceDetection(image, filename=os.path.join(OUTPUT_DIR,"ps6-4-c-1.png"))
 
 def part_5_b():
     pos2 = load_images_from_dir(POS2_DIR)
@@ -272,12 +306,19 @@ def part_5_b():
     image = cv2.resize(image, (120, 60))
     CC.faceDetection(image, filename="cascade")
 
+    CC = ps6.CascadeClassifier(pos2, neg2)
+    CC.train()
+
+    image = cv2.imread(os.path.join(INPUT_DIR, "man.jpeg"), -1)
+    image = cv2.resize(image, (120, 60))
+    CC.faceDetection(image, filename="cascade")
+
 
 if __name__ == "__main__":
     part_1a_1b()
     part_1c()
-    # part_2a()
-    # part_3a()
-    # part_4_a_b()
-    # part_4_c()
+    part_2a()
+    part_3a()
+    part_4_a_b()
+    part_4_c()
     # part_5_b()

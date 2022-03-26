@@ -162,7 +162,6 @@ class HaarFeature(unittest.TestCase):
             # Uncomment if you want to see the reference image
             # cv2.imshow("ref_img", ref_img.astype("uint8"))
             # cv2.waitKey(0)
-
             hf = ps6.HaarFeature(feat_type, pos, size)
             hf_img = hf.preview((50, 50))
 
@@ -195,8 +194,8 @@ class HaarFeature(unittest.TestCase):
         test_image = np.load(ti_path)
         integral_image = np.load(ii_path)
 
-        feat_type = (2, 2)  # Change feature type
-        pos = (5, 5)
+        feat_type = (1, 2)  # Change feature type
+        pos = (0, 0)
         size = (30, 30)
 
         if feat_type == (2, 1):
