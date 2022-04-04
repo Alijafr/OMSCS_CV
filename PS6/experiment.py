@@ -70,7 +70,20 @@ def visualize_mean_face(x_mean, size, new_dims):
     
     return cv2.resize(mean_norm,new_dims)
 
-
+def save_plot(x,y,title,xlabel,ylabel,label,name,figsize,color='b'):
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.plot(x,y,label=label,color=color)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    
+    plt.title(title)
+    plt_name = name
+    
+    plt.legend()
+    plt.grid()
+    plt.savefig(plt_name)
+    plt.close()
+    
 def part_1a_1b():
 
     orig_size = (192, 231)
@@ -91,9 +104,95 @@ def part_1a_1b():
     plot_eigen_faces(eig_vecs.T, os.path.join(OUTPUT_DIR,"ps6-1-b-1.png"))
 
 
+def plot_1c():
+    #p = 0.5  # Select a split percentage value
+    k = 10  # Select a value for k
+    ps = np.arange(0.01,0.95,0.01)
+    accuracies = np.zeros(len(ps))
+    for j,p in enumerate(ps):
+        size = (32, 32)
+        X, y = ps6.load_images(YALE_FACES_DIR, size)
+        Xtrain, ytrain, Xtest, ytest = ps6.split_dataset(X, y, p)
+    
+        # training
+        mu = ps6.get_mean_face(Xtrain)
+        eig_vecs, eig_vals = ps6.pca(Xtrain, k)
+        Xtrain_proj = np.dot(Xtrain - mu, eig_vecs)
+    
+        # testing
+        mu = ps6.get_mean_face(Xtest)
+        Xtest_proj = np.dot(Xtest - mu, eig_vecs)
+    
+        good = 0
+        bad = 0
+        for i, obs in enumerate(Xtest_proj):
+    
+            dist = [np.linalg.norm(obs - x) for x in Xtrain_proj]
+    
+            idx = np.argmin(dist)
+            y_pred = ytrain[idx]
+    
+            if y_pred == ytest[i]:
+                good += 1
+    
+            else:
+                bad += 1
+        accuracies[j] = 100 * float(good) / (good + bad)
+    title = "PCA Accuracy with different data split ratio [K=10]"
+    xlabel = "P: split ratio for training"
+    ylabel="Accuracy"
+    name = "1c_p.png"
+    figsize = (5,4)
+    label = "PCA Model"
+    save_plot(ps,accuracies,title,xlabel,ylabel,label,name,figsize)
+    
+    p = 0.8  # Select a split percentage value
+    #k = 10  # Select a value for k
+    ks = np.arange(1,71,1)
+    accuracies = np.zeros(len(ks))
+    for j,k in enumerate(ks):
+        size = (32, 32)
+        X, y = ps6.load_images(YALE_FACES_DIR, size)
+        Xtrain, ytrain, Xtest, ytest = ps6.split_dataset(X, y, p)
+    
+        # training
+        mu = ps6.get_mean_face(Xtrain)
+        eig_vecs, eig_vals = ps6.pca(Xtrain, k)
+        Xtrain_proj = np.dot(Xtrain - mu, eig_vecs)
+    
+        # testing
+        mu = ps6.get_mean_face(Xtest)
+        Xtest_proj = np.dot(Xtest - mu, eig_vecs)
+    
+        good = 0
+        bad = 0
+        for i, obs in enumerate(Xtest_proj):
+    
+            dist = [np.linalg.norm(obs - x) for x in Xtrain_proj]
+    
+            idx = np.argmin(dist)
+            y_pred = ytrain[idx]
+    
+            if y_pred == ytest[i]:
+                good += 1
+    
+            else:
+                bad += 1
+        accuracies[j] = 100 * float(good) / (good + bad)
+    title = "PCA Accuracy with different K ratio [p=0.8]"
+    xlabel = "K"
+    ylabel="Accuracy"
+    name = "1c_k.png"
+    figsize = (5,4)
+    label = "PCA Model"
+    save_plot(ks,accuracies,title,xlabel,ylabel,label,name,figsize,color='r')
+            
+            
+            
+    
 def part_1c():
     p = 0.5  # Select a split percentage value
-    k = 5  # Select a value for k
+    k = 10  # Select a value for k
 
     size = (32, 32)
     X, y = ps6.load_images(YALE_FACES_DIR, size)
@@ -130,12 +229,12 @@ def part_1c():
             rand_corrects +=1
     
     print('random {0:.2f}% accuracy'.format(100 * float(rand_corrects) / len(ytest)))
+    print('random Good predictions = ', rand_corrects, 'Bad predictions = ', len(ytest)-rand_corrects)
     print('Good predictions = ', good, 'Bad predictions = ', bad)
     print('PCA {0:.2f}% accuracy'.format(100 * float(good) / (good + bad)))
     
 
-
-def part_2a():
+def plot_2a():
     y0 = 1
     y1 = 2
 
@@ -155,6 +254,82 @@ def part_2a():
     y[y1_ids] = -1
 
     p = 0.8
+    Xtrain, ytrain, Xtest, ytest = ps6.split_dataset(X, y, p)
+
+
+    #num_iter = 5
+    num_iters  = np.arange(1,21,1)
+    accuracy = np.zeros(len(num_iters))
+    for j, num_iter in enumerate(num_iters):
+        boost = ps6.Boosting(Xtrain, ytrain, num_iter)
+        boost.train()
+    
+        y_pred = boost.predict(Xtest)
+        # TODO: find which of these labels match ytest and report its accuracy
+        boost_corrects = 0
+        for i in range(len(ytest)):
+            if y_pred[i] == ytest[i]:
+                boost_corrects += 1
+            
+        accuracy[j] = 100 *boost_corrects/len(ytest)
+    
+    title = "Boosting Accuracy with different num_iter ratio [p=0.8]"
+    xlabel = "num_iter"
+    ylabel="Accuracy"
+    name = "2a_num_iter.png"
+    figsize = (6,4)
+    label = "Boosting Model"
+    save_plot(num_iters,accuracy,title,xlabel,ylabel,label,name,figsize,color='r')
+    
+    
+    num_iter = 10
+    ps = np.arange(0.01,0.95,0.01)
+    accuracy = np.zeros(len(ps))
+    for j, p in enumerate(ps):
+        Xtrain, ytrain, Xtest, ytest = ps6.split_dataset(X, y, p)
+        boost = ps6.Boosting(Xtrain, ytrain, num_iter)
+        boost.train()
+    
+        y_pred = boost.predict(Xtest)
+        # TODO: find which of these labels match ytest and report its accuracy
+        boost_corrects = 0
+        for i in range(len(ytest)):
+            if y_pred[i] == ytest[i]:
+                boost_corrects += 1
+            
+        accuracy[j] = 100 *boost_corrects/len(ytest)
+    
+    title = "Boosting Accuracy with different p ratio [num_iter=10]"
+    xlabel = "p: split ratio for training data"
+    ylabel="Accuracy"
+    name = "2ap.png"
+    figsize = (6,4)
+    label = "Boosting Model"
+    save_plot(ps,accuracy,title,xlabel,ylabel,label,name,figsize,color='b')
+    
+
+    
+    
+def part_2a():
+    y0 = 1
+    y1 = 2
+
+    X, y = ps6.load_images(FRUITS_DIR)
+
+    # Select only the y0 and y1 classes
+    idx = y == y0
+    idx |= y == y1
+
+    X = X[idx,:]
+    y = y[idx]
+
+    # Label them 1 and -1
+    y0_ids = y == y0
+    y1_ids = y == y1
+    y[y0_ids] = 1
+    y[y1_ids] = -1
+
+    p = 0.5
     Xtrain, ytrain, Xtest, ytest = ps6.split_dataset(X, y, p)
 
     # Picking random numbers
@@ -177,7 +352,7 @@ def part_2a():
     for i in range(len(ytrain)):
         if wk_results[i] ==ytrain[i]:
             wk_corrects+=1
-    wk_accuracy = 100*corrects/len(ytrain)
+    wk_accuracy = 100*wk_corrects/len(ytrain)
     print('(Weak) Training accuracy {0:.2f}%'.format(wk_accuracy))
 
     num_iter = 5
@@ -205,7 +380,7 @@ def part_2a():
     for i in range(len(ytest)):
         if wk_results[i] ==ytest[i]:
             wk_corrects+=1
-    wk_accuracy = 100*corrects/len(ytest)
+    wk_accuracy = 100*wk_corrects/len(ytest)
     print('(Weak) Testing accuracy {0:.2f}%'.format(wk_accuracy))
 
     y_pred = boost.predict(Xtest)
@@ -254,7 +429,7 @@ def part_4_a_b():
     VJ = ps6.ViolaJones(train_pos, train_neg, integral_images)
     VJ.createHaarFeatures()
 
-    VJ.train(4)
+    VJ.train(5)
 
     VJ.haarFeatures[VJ.classifiers[0].feature].preview(filename="ps6-4-b-1")
     VJ.haarFeatures[VJ.classifiers[1].feature].preview(filename="ps6-4-b-2")
@@ -315,10 +490,12 @@ def part_5_b():
 
 
 if __name__ == "__main__":
-    part_1a_1b()
-    part_1c()
-    part_2a()
-    part_3a()
-    part_4_a_b()
-    part_4_c()
+    #part_1a_1b()
+    #part_1c()
+    #plot_1c()
+    plot_2a()
+    #part_2a()
+    #part_3a()
+    #part_4_a_b()
+    #part_4_c()
     # part_5_b()
