@@ -269,21 +269,20 @@ if __name__ == "__main__":
         save_weight_name = "custom_model.pt"
         figure_name = "custom_model_training"
     elif args.model_type == "VGG16":
-        if args.model_type == "VGG16":
-            if args.pretained == "True":
-                model = VGG16(pretrained=True,in_channels=3,num_classes=11)
-                save_weight_name = "pre_trained_vgg.pt"
-                figure_name = "vgg_pretrained"
-            elif args.pretained == "False":
-                model = VGG16(pretrained=False,in_channels=3,num_classes=11)
-                save_weight_name = "vgg_retrained.pt"
-                figure_name = "vgg_retrained"
-            else:
-                print("wrong input, should be eithre True or False (case-sensative)")
-                print("going with pretrained VGG16")
-                model = VGG16(pretrained=True,in_channels=3,num_classes=11)
-                save_weight_name = "pre_trained_vgg.pt"
-                figure_name = "vgg_pretrained"
+        if args.pretained == "True":
+            model = VGG16(pretrained=True,in_channels=3,num_classes=11)
+            save_weight_name = "pre_trained_vgg.pt"
+            figure_name = "vgg_pretrained"
+        elif args.pretained == "False":
+            model = VGG16(pretrained=False,in_channels=3,num_classes=11)
+            save_weight_name = "vgg_retrained.pt"
+            figure_name = "vgg_retrained"
+        else:
+            print("wrong input, should be eithre True or False (case-sensative)")
+            print("going with pretrained VGG16")
+            model = VGG16(pretrained=True,in_channels=3,num_classes=11)
+            save_weight_name = "pre_trained_vgg.pt"
+            figure_name = "vgg_pretrained"
     else:
         print("wrong input for model_type, should be either custom_model or VGG16")
         sys.exit()
