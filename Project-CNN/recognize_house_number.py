@@ -28,11 +28,12 @@ def get_bboxes_MSER(img,expand=False,percentages = [0.2,-0.2]):
         list of the bounding boxes extracted from the image using MSER detector.
 
     '''
+    img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     h_img, w_img = img.shape[:2]
     img_area=h_img*w_img
     #Create MSER detector 
-    #mser = cv2.MSER_create(min_area=int(0.01*img_area),max_area=int(0.2*img_area),max_variation=0.3)
-    mser = cv2.MSER_create(max_variation=0.35)
+    #mser = cv2.MSER_create(min_area=int(0.01*img_area),max_area=int(0.2*img_area),max_variation=0.25)
+    mser = cv2.MSER_create(max_variation=0.8)
     ROIs, _ = mser.detectRegions(img)
     
     bboxes = []
@@ -42,13 +43,13 @@ def get_bboxes_MSER(img,expand=False,percentages = [0.2,-0.2]):
         #just make sure that the boudning box is reasonable
         h_box = y2-y1
         w_box = x2-x1
-        if (w_box <= 0.5 * w_img and h_box <= 0.8*h_img) and (w_box>= 0.05* w_img and h_box >= 0.07 * h_img) \
-                    and h_box >=w_box:
+        if (w_box <= 0.5 * w_img and h_box <= 0.8*h_img) and (w_box>= 0.04* w_img and h_box >= 0.05 * h_img):
             #append box
             bboxes.append((x1, y1, x2, y2))
     if expand:
-        bboxes = fuzz_bboxes(bboxes,percentages)
+        bboxes = fuzz_bboxes(img,bboxes,percentages)
     return bboxes
+
 
 def fuzz_bboxes(img,bboxes, percentages):
     '''
@@ -85,7 +86,7 @@ def fuzz_bboxes(img,bboxes, percentages):
     
     return new_bboxes
 
-def draw_bboxes(img,bboxes,labels=[]):
+def draw_bboxes(img,bboxes,labels=[],prob=[]):
     '''
     Helper to draw the bboxes of an image and labels if provides
 
@@ -107,7 +108,8 @@ def draw_bboxes(img,bboxes,labels=[]):
         x1,y1,x2,y2 = box
         cv2.rectangle(vis,(x1,y1),(x2,y2),(0,255,0),1)
         if len(labels) :
-            cv2.putText(vis, str(labels[i]), org = (x1, y2 - 3), fontFace = cv2.FONT_HERSHEY_SIMPLEX, color = (0, 0, 255), thickness = 2, fontScale = 1)
+            cv2.putText(vis, str(labels[i]), org = (x1, y2 - 3), fontFace = cv2.FONT_HERSHEY_SIMPLEX, color = (255, 0, 0), thickness = 2, fontScale = 0.5)
+            cv2.putText(vis, "p: "+str(round(prob[i],2)), org = (x1, y1 - 3), fontFace = cv2.FONT_HERSHEY_SIMPLEX, color = (255, 0, 0), thickness = 1, fontScale = 0.2)
     return vis
     
 def extract_images(image,bboxes):
@@ -146,7 +148,7 @@ def predict_labels(model,images_np,use_cuda):
 
 #skelton obtained from: 
 #https://pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
-def nms(bboxes,max_prob=None,overlap_thresh = 0.2):
+def nms(bboxes,max_prob=None,overlap_thresh = 0.1):
     if len(bboxes) == 0:
         return []
     
@@ -186,7 +188,7 @@ def nms(bboxes,max_prob=None,overlap_thresh = 0.2):
 			np.where(overlap > overlap_thresh)[0])))
 	# return only the bounding boxes that were picked using the
 	# integer data type
-    return list(bboxes[accepted_idx].astype("int"))
+    return list(bboxes[accepted_idx].astype("int")),accepted_idx
         
         
     
@@ -200,7 +202,7 @@ def read_house_numbers(image,model,use_cuda):
         #run the images throught the model to get the probs and labels
         pred_labels, max_prob = predict_labels(model, images_np, use_cuda)
         #filer the result
-        mask = (pred_labels!=10) & (max_prob >0.5) #the label is not 10 (non-digit), and it has a high prob
+        mask = (pred_labels!=10) & (max_prob >0.035) #the label is not 10 (non-digit), and it has a high prob
         #update the bboxes and pred_labels
         if use_cuda:
             #convert variable to cpu again 
@@ -213,14 +215,15 @@ def read_house_numbers(image,model,use_cuda):
         bboxes = np.array(bboxes)[mask]
         if len(bboxes)==0:
             print("No digits detected")
+            return image
         else:
             #visualize the bboxes
             #vis = draw_bboxes(image, bboxes)
             
             #use NMS to remove overlapping bouding boxes
-            bboxes = nms(bboxes,max_prob)
+            bboxes,accepted_idx = nms(bboxes,max_prob)
             #visualize result 
-            vis = draw_bboxes(image, bboxes,pred_labels.numpy())
+            vis = draw_bboxes(image, bboxes,pred_labels.numpy()[accepted_idx],max_prob.numpy()[accepted_idx])
            
             return vis
         
