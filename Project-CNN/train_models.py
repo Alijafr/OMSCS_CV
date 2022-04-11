@@ -105,7 +105,7 @@ def prepare_dataset_torch(transfoms=True):
     # number of subprocesses to use for data loading
     num_workers = 0
     # how many samples per batch to load
-    batch_size = 30
+    batch_size = 64
     train_loader = torch.utils.data.DataLoader(train_dataset,batch_size=batch_size,num_workers=num_workers)
     valid_loader = torch.utils.data.DataLoader(val_dataset,batch_size=batch_size,num_workers=num_workers)
     test_loader =torch.utils.data.DataLoader(test_dataset,batch_size=batch_size,num_workers=num_workers)
@@ -136,13 +136,15 @@ def get_loss():
 
 def get_optimzer(model):
     ### select optimizer
-    return optim.Adam(model.parameters(),lr=0.003)
+    return optim.Adam(model.parameters(),lr=0.0005)
     
 def train(n_epochs, loaders, model, save_path,track_train_loss,track_valid_loss,valid_loss_min = np.Inf):
     
     optimizer = get_optimzer(model)
     criterion = get_loss()
     use_cuda = torch.cuda.is_available()
+    if use_cuda:
+        model.cuda()
     for epoch in range(1, n_epochs+1):
         # initialize variables to monitor training and validation loss
         train_loss = 0.0
@@ -218,6 +220,8 @@ def test(loaders, model):
     
     criterion = get_loss()
     use_cuda = torch.cuda.is_available()
+    if use_cuda:
+        model.cuda()
     # monitor test loss and accuracy
     test_loss = 0.
     correct = 0.
@@ -249,7 +253,7 @@ def test(loaders, model):
 def plot_result(track_train_loss,track_valid_loss,figure_name):
     plt.plot(track_train_loss,label="training")
     plt.plot(track_valid_loss,label="validation")
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+    plt.legend()
     plt.grid()
     plt.xlabel('Epoch')
     plt.ylabel('loss')
@@ -304,9 +308,11 @@ if __name__ == "__main__":
     min_val_loss=np.Inf
     #train the model
     print("training started.......")
-    model,track_train_loss,track_valid_loss,valid_loss_min = train(1, loaders, model, save_weight_name, track_train_loss, track_valid_loss)
+    model,track_train_loss,track_valid_loss,valid_loss_min = train(15, loaders, model, save_weight_name, track_train_loss, track_valid_loss)
     
     print("testing started.......")
+    print("loading the saved weights")
+    model.load_state_dict(torch.load(save_weight_name))
     #test accuracy
     test(loaders, model)
     print("ploting.......")
