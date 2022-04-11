@@ -24,7 +24,8 @@ class custom_model(nn.Module):
         
         self.conv5=nn.Conv2d(in_channels=128,out_channels=256,kernel_size=(3,3),stride =1,padding=1)
         self.conv6=nn.Conv2d(in_channels=256,out_channels=512,kernel_size=(3,3),stride =1,padding=1)
-        self.dropout2 = nn.Dropout(p=0.6)
+        self.dropout1 = nn.Dropout(p=0.2)
+        self.dropout2 = nn.Dropout(p=0.4)
         self.pool=nn.MaxPool2d(2,2) #devide by size by half
         self.bn1 = nn.BatchNorm2d(32)
         self.bn2 = nn.BatchNorm2d(64)
@@ -33,9 +34,9 @@ class custom_model(nn.Module):
         self.bn5 = nn.BatchNorm2d(512)
         #after 4 pooling layer of filter size 2 and stride 2
         #the image size will be (4,4,512)
-        self.fc1 = nn.Linear(4 * 4 * 512, 2000)
-        self.fc2 = nn.Linear(2000, 1000)
-        self.fc3 = nn.Linear(1000, num_classes)
+        self.fc1 = nn.Linear(4 * 4 * 512, 4000)
+        self.fc2 = nn.Linear(4000, 1500)
+        self.fc3 = nn.Linear(1500, num_classes)
     
     def forward(self, x):
         ## Define forward behavior

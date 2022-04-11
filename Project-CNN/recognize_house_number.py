@@ -132,7 +132,8 @@ def predict_labels(model,images_np,use_cuda):
     #apply transform to prepare the images to be inptuted to the model 
     images_tensor = apply_transforms(images_np,train=False)
     if use_cuda:
-            images_tensor = images_tensor.cuda()
+        model.cuda()
+        images_tensor = images_tensor.cuda()
     model.eval()      
     output = model(images_tensor)
     #apply softmax to the output 
@@ -199,10 +200,16 @@ def read_house_numbers(image,model,use_cuda):
         #run the images throught the model to get the probs and labels
         pred_labels, max_prob = predict_labels(model, images_np, use_cuda)
         #filer the result
-        mask = (pred_labels!=10) & (max_prob >0.4) #the label is not 10 (non-digit), and it has a high prob
+        mask = (pred_labels!=10) & (max_prob >0.5) #the label is not 10 (non-digit), and it has a high prob
         #update the bboxes and pred_labels
+        if use_cuda:
+            #convert variable to cpu again 
+            mask = mask.cpu().numpy()
+            max_prob = max_prob.cpu()
+            pred_labels = pred_labels.cpu()
         max_prob = max_prob[mask]
         pred_labels=pred_labels[mask]
+        
         bboxes = np.array(bboxes)[mask]
         if len(bboxes)==0:
             print("No digits detected")
@@ -240,7 +247,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_type",default="custom_model",required=False)
     parser.add_argument("--weights_file",default="custom_model.pt",required=False) #only for VGG16 
-    parser.add_argument("--input_image",default="dataset/train/format1/13.png",required=False) #name of the output image
+    parser.add_argument("--input_image",default="dataset/train/format1/2.png",required=False) #name of the output image
     parser.add_argument("--out_image",required=False) #name of the output image
     args = parser.parse_args()
     
@@ -252,10 +259,11 @@ if __name__ == "__main__":
     else:
         print("wrong input for model_type, should be either custom_model or VGG16")
         sys.exit()
+    
     use_cuda = torch.cuda.is_available()
     if use_cuda:
         #model trained using gpu
-        model.load_state_dict(torch.load(args.weights_file))
+        model.load_state_dict(torch.load(args.weights_file,map_location=torch.device('cuda')))
     else:
         model.load_state_dict(torch.load(args.weights_file,map_location=torch.device('cpu')))
     image_path =  args.input_image

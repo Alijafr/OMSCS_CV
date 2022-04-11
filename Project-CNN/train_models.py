@@ -49,7 +49,35 @@ def apply_transforms(X,train=True):
         
     
     return tensor
-        
+
+def tensor2numpy_image(tensor):
+    
+    image = tensor.to("cpu").clone().detach()
+    image = image.numpy().squeeze()
+    image = image.transpose(1,2,0)
+    image = image * np.array((0.229, 0.224, 0.225)) + np.array((0.485, 0.456, 0.406))
+    image = image.clip(0, 1)#make sure that the values are from 0 to 1 after unnomalization
+    return image
+
+def plot_images(imgs, labels, nrows, ncols):
+    """ Plot nrows x ncols images
+    """
+    fig, axes = plt.subplots(nrows, ncols)
+    for i, ax in enumerate(axes.flat): 
+        if imgs[i].shape == (32, 32, 3):
+            ax.imshow(imgs[i])
+        else:
+            ax.imshow(imgs[i,:,:,0])
+        ax.set_xticks([]); ax.set_yticks([])
+        ax.set_title(labels[i])
+
+def tensor_imshow(tensor):
+    '''
+    Helper to visualize tensor images from loaders 
+    '''
+    image = tensor2numpy_image(tensor)
+    #rearrange the height,width and channel
+    plt.imshow(image)  # convert from Tensor image       
 
 def prepare_dataset_torch(transfoms=True):
     #load dataset
@@ -128,7 +156,7 @@ def load_pickle(filename):
     infile.close()
     return pickle_data
     
-
+    
 def get_loss():
     
     ### select loss function
@@ -136,9 +164,9 @@ def get_loss():
 
 def get_optimzer(model):
     ### select optimizer
-    return optim.Adam(model.parameters(),lr=0.0005)
+    return optim.Adam(model.parameters(),lr=0.00005)
     
-def train(n_epochs, loaders, model, save_path,track_train_loss,track_valid_loss,valid_loss_min = np.Inf):
+def train(n_epochs, loaders, model, save_path,track_train_loss,track_valid_loss,track_train_accuray,track_valid_accuray, valid_loss_min = np.Inf):
     
     optimizer = get_optimzer(model)
     criterion = get_loss()
@@ -149,7 +177,8 @@ def train(n_epochs, loaders, model, save_path,track_train_loss,track_valid_loss,
         # initialize variables to monitor training and validation loss
         train_loss = 0.0
         valid_loss = 0.0
-        
+        corrects_train = 0
+        corrects_valid = 0
         ###################
         # train the model #
         ###################
@@ -174,6 +203,11 @@ def train(n_epochs, loaders, model, save_path,track_train_loss,track_valid_loss,
             # update training loss
             train_loss += loss.item()*data.size(0)
             
+            #counts the number of currects labels 
+            pred = output.data.max(1, keepdim=True)[1]
+            # compare predictions to true label
+            corrects_train += np.sum(np.squeeze(pred.eq(target.data.view_as(pred))).cpu().numpy())
+            
             
         ######################    
         # validate the model #
@@ -189,12 +223,22 @@ def train(n_epochs, loaders, model, save_path,track_train_loss,track_valid_loss,
             loss = criterion(output, target)
             # update average validation loss 
             valid_loss += loss.item()*data.size(0)
+            
+            #counts the number of currects labels 
+            pred = output.data.max(1, keepdim=True)[1]
+            # compare predictions to true label
+            corrects_valid += np.sum(np.squeeze(pred.eq(target.data.view_as(pred))).cpu().numpy())
     
         # calculate average losses
         train_loss = train_loss/len(loaders['train'].dataset)
         valid_loss = valid_loss/len(loaders['valid'].dataset)
         track_train_loss.append(train_loss)
         track_valid_loss.append(valid_loss)
+        #calcualate accuarcy 
+        track_train_accuray.append(corrects_train/len(loaders['train'].dataset))
+        track_valid_accuray.append(corrects_valid/len(loaders['valid'].dataset))
+        
+        
         
 
             
@@ -214,7 +258,7 @@ def train(n_epochs, loaders, model, save_path,track_train_loss,track_valid_loss,
             torch.save(model.state_dict(), save_path)
             valid_loss_min = valid_loss    
     # return trained model
-    return model,track_train_loss,track_valid_loss,valid_loss_min
+    return model,track_train_loss,track_valid_loss,track_train_accuray,track_valid_accuray,valid_loss_min
 
 def test(loaders, model):
     
@@ -249,16 +293,22 @@ def test(loaders, model):
 
     print('\nTest Accuracy: %2d%% (%2d/%2d)' % (
         100. * correct / total, correct, total))
-    
-def plot_result(track_train_loss,track_valid_loss,figure_name):
-    plt.plot(track_train_loss,label="training")
-    plt.plot(track_valid_loss,label="validation")
+   
+def plot_result(x1,x2,figure_name,loss=True):
+    plt.plot(x1,label="training")
+    plt.plot(x2,label="validation")
     plt.legend()
     plt.grid()
     plt.xlabel('Epoch')
-    plt.ylabel('loss')
-    plt.title("training for {}".format(figure_name))
-    plt.savefig('{}.png'.format(figure_name)) 
+    
+    if loss:
+        plt.ylabel("loss")
+        plt.title("Loss for {}".format(figure_name))
+        plt.savefig('loss_{}.png'.format(figure_name)) 
+    else:
+        plt.ylabel("Accuracy")
+        plt.title("Accuracy for {}".format(figure_name))
+        plt.savefig('Accuracy_{}.png'.format(figure_name)) 
     #plt.ylim(0, 7) # consistent scale
     plt.show()    
 if __name__ == "__main__":
@@ -305,10 +355,12 @@ if __name__ == "__main__":
     
     track_train_loss=[]
     track_valid_loss=[]
+    track_train_accuray = []
+    track_valid_accuray = []
     min_val_loss=np.Inf
     #train the model
     print("training started.......")
-    model,track_train_loss,track_valid_loss,valid_loss_min = train(15, loaders, model, save_weight_name, track_train_loss, track_valid_loss)
+    model,track_train_loss,track_valid_loss,track_train_accuray,track_valid_accuray,valid_loss_min = train(8, loaders, model, save_weight_name, track_train_loss, track_valid_loss,track_train_accuray,track_valid_accuray,min_val_loss)
     
     print("testing started.......")
     print("loading the saved weights")
@@ -317,8 +369,8 @@ if __name__ == "__main__":
     test(loaders, model)
     print("ploting.......")
     #plot and save result 
-    plot_result(track_train_loss, track_valid_loss, figure_name)
-    
+    plot_result(track_train_loss, track_valid_loss,figure_name)
+    plot_result(track_train_accuray,track_valid_accuray,figure_name,loss=False)
     
     
 
