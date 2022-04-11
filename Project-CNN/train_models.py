@@ -64,8 +64,8 @@ def prepare_dataset_torch(transfoms=True):
     #this is 32x32 images (format2 of SVHN dataset)
     X1_train, Y1_labels, X1_test, Y1_test =  util.preproces_data(format2_mat_path_train,format2__mat_path_test) 
     #get negative images from format2
-    X2_train ,Y2_lables = util.create_non_digit_dataset(format1_path, format1_mat_path_train,p=0.6)
-    X2_test , Y2_test = util.create_non_digit_dataset(format1_test_path, format1_mat_path_test,p=0.6)
+    X2_train ,Y2_lables = util.create_non_digit_dataset(format1_path, format1_mat_path_train,p=1.0)
+    X2_test , Y2_test = util.create_non_digit_dataset(format1_test_path, format1_mat_path_test,p=1.0)
     
     #concatenate the dataset together
     X_train = np.concatenate((X1_train,X2_train))
@@ -79,12 +79,12 @@ def prepare_dataset_torch(transfoms=True):
     X_test = np.concatenate((X1_test,X2_test))
     Y_test = np.concatenate((Y1_test,Y2_test))
     
-    if transfoms:
-        X_train = apply_transforms(X_train)
-        X_test = apply_transforms(X_test,train=False)
-    else:
-        X_train = torch.Tensor(X_train)
-        X_test = torch.Tensor(X_test)
+    #if transfoms:
+    X_train = apply_transforms(X_train,train=transfoms) #if false, the testing transforms will apply
+    X_test = apply_transforms(X_test,train=False)
+    # else:
+    #     X_train = torch.Tensor(X_train)
+    #     X_test = torch.Tensor(X_test)
     
     #devide the data into train, valid,and test
     Y_train = torch.Tensor(Y_train)

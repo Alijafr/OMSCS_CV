@@ -107,7 +107,7 @@ def draw_bboxes(img,bboxes,labels=[]):
         x1,y1,x2,y2 = box
         cv2.rectangle(vis,(x1,y1),(x2,y2),(0,255,0),1)
         if len(labels) :
-            cv2.putText(vis, str(labels[i]), org = (x1, y2 + 3), fontFace = cv2.FONT_HERSHEY_SIMPLEX, color = (0, 0, 255), thickness = 2, fontScale = 1.5)
+            cv2.putText(vis, str(labels[i]), org = (x1, y2 - 3), fontFace = cv2.FONT_HERSHEY_SIMPLEX, color = (0, 0, 255), thickness = 2, fontScale = 1)
     return vis
     
 def extract_images(image,bboxes):
@@ -133,6 +133,7 @@ def predict_labels(model,images_np,use_cuda):
     images_tensor = apply_transforms(images_np,train=False)
     if use_cuda:
             images_tensor = images_tensor.cuda()
+    model.eval()      
     output = model(images_tensor)
     #apply softmax to the output 
     output=nn.functional.softmax(output, dim=0) #apply softmax to the output
@@ -144,7 +145,7 @@ def predict_labels(model,images_np,use_cuda):
 
 #skelton obtained from: 
 #https://pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
-def nms(bboxes,max_prob=None,overlap_thresh = 0.4):
+def nms(bboxes,max_prob=None,overlap_thresh = 0.2):
     if len(bboxes) == 0:
         return []
     
@@ -239,24 +240,28 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_type",default="custom_model",required=False)
     parser.add_argument("--weights_file",default="custom_model.pt",required=False) #only for VGG16 
-    parser.add_argument("--input_image",default="dataset/train/format1/2.png",required=False) #name of the output image
+    parser.add_argument("--input_image",default="dataset/train/format1/13.png",required=False) #name of the output image
     parser.add_argument("--out_image",required=False) #name of the output image
     args = parser.parse_args()
+    
     if args.model_type == "custom_model":    
         model = custom_model(in_channels=3,num_classes= 11)
-        model.load_state_dict(torch.load(args.weights_file))
+        
     elif args.model_type == "VGG16":
         model = VGG16(pretrained=False,in_channels=3,num_classes=11)
-        model.load_state_dict(torch.load(args.weights_file))
     else:
         print("wrong input for model_type, should be either custom_model or VGG16")
         sys.exit()
-    
+    use_cuda = torch.cuda.is_available()
+    if use_cuda:
+        #model trained using gpu
+        model.load_state_dict(torch.load(args.weights_file))
+    else:
+        model.load_state_dict(torch.load(args.weights_file,map_location=torch.device('cpu')))
     image_path =  args.input_image
     image = cv2.imread(image_path)
-    use_cuda = torch.cuda.is_available()
     vis = read_house_numbers(image, model, use_cuda)
-    if len(args.out_image):
+    if args.out_image != None:
         cv2.imwrite("{}.png".format(args.out_image),vis)
     cv2.imshow("vis",vis)
     cv2.waitKey(0)
