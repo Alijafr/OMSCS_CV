@@ -16,6 +16,7 @@ import pickle
 
 format2_mat_path_train = "dataset/train/format2/train_32x32.mat"
 format2__mat_path_test = "dataset/test/format2/test_32x32.mat"
+format2_mat_path_extra = "dataset/train/extra_32x32.mat"
 format1_mat_path_train = "dataset/train/format1/digitStruct.mat"
 format1_mat_path_test = "dataset/test/format1/digitStruct.mat"
 format1_path = "dataset/train/format1/"
@@ -79,10 +80,27 @@ def tensor_imshow(tensor):
     #rearrange the height,width and channel
     plt.imshow(image)  # convert from Tensor image       
 
+def plot_hist(train_y,test_y,bins=11):
+    fig,axes  = plt.subplots(1, 2,sharex=True,figsize=(10,5))
+    fig.suptitle('Dataset Distribution', fontsize=10,fontweight='bold')
+    
+    axes[0].hist(train_y)
+    axes[0].set_title("training data")
+    axes[0].set_xlim(1,bins)
+    
+    axes[1].hist(test_y)
+    axes[1].set_title("testing data")
+    axes[1].set_xlim(1,bins)
+    fig.tight_layout()
+    
+    plt.savefig("histograms.png")
+    
+    
 def prepare_dataset_torch(transfoms=True):
     #load dataset
     global format2_mat_path_train
     global format2__mat_path_test
+    global format2_mat_path_extra
     global format1_path
     global format1_mat_path_train
     global format1_test_path
@@ -90,7 +108,7 @@ def prepare_dataset_torch(transfoms=True):
     
     
     #this is 32x32 images (format2 of SVHN dataset)
-    X1_train, Y1_labels, X1_test, Y1_test =  util.preproces_data(format2_mat_path_train,format2__mat_path_test) 
+    X1_train, Y1_labels, X1_test, Y1_test =  util.preproces_data(format2_mat_path_train,format2__mat_path_test,format2_mat_path_extra) 
     #get negative images from format2
     X2_train ,Y2_lables = util.create_non_digit_dataset(format1_path, format1_mat_path_train,p=1.0)
     X2_test , Y2_test = util.create_non_digit_dataset(format1_test_path, format1_mat_path_test,p=1.0)
@@ -104,9 +122,11 @@ def prepare_dataset_torch(transfoms=True):
     X_train = np.take(X_train,shuflled_indices,axis=0)
     Y_train = np.take(Y_train,shuflled_indices,axis=0)
     
-    X_test = np.concatenate((X1_test,X2_test))
-    Y_test = np.concatenate((Y1_test,Y2_test))
+    X_test = np.concatenate((X1_test,X2_test[:5000,:,:,:]))
+    Y_test = np.concatenate((Y1_test,Y2_test[:5000]))
     
+    #save the histograms 
+    plot_hist(Y_train,Y_test,bins=11)
     #if transfoms:
     X_train = apply_transforms(X_train,train=transfoms) #if false, the testing transforms will apply
     X_test = apply_transforms(X_test,train=False)

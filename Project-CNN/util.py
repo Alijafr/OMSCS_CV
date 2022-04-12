@@ -36,10 +36,10 @@ def load_mat_data(relative_path):
     Y = data["y"] #labels
     return X,Y
         
-    
+  
 
 #this data is meant to prepare the dataset for in the standard foramt
-def preproces_data(train_file,test_file):
+def preproces_data(train_file,test_file,extra_train_file=None):
     '''
     This function is meant to read the .mat files (format 2 of SVHN dataset)
 
@@ -62,7 +62,10 @@ def preproces_data(train_file,test_file):
         np.array of the labels to the images to test in this format (num_images,).
 
     '''
-    train_x , train_y = load_mat_data(train_file)
+    train_x1 , train_y1 = load_mat_data(train_file)
+    train_x2 , train_y2 = load_mat_data(extra_train_file)
+    train_x = np.concatenate((train_x1,train_x2),axis=3)
+    train_y = np.concatenate((train_y1,train_y2))
     test_x , test_y = load_mat_data(test_file)
     #the data comes in this format (w,h,ch,images)
     #need to changes it to the common format (images,w,h,ch)
