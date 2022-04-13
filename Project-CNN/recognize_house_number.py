@@ -33,7 +33,7 @@ def get_bboxes_MSER(img,expand=False,percentages = [0.2,-0.2]):
     img_area=h_img*w_img
     #Create MSER detector 
     #mser = cv2.MSER_create(min_area=int(0.01*img_area),max_area=int(0.2*img_area),max_variation=0.25)
-    mser = cv2.MSER_create(max_variation=0.8)
+    mser = cv2.MSER_create(max_variation=0.5)
     ROIs, _ = mser.detectRegions(img)
     
     bboxes = []
@@ -43,7 +43,7 @@ def get_bboxes_MSER(img,expand=False,percentages = [0.2,-0.2]):
         #just make sure that the boudning box is reasonable
         h_box = y2-y1
         w_box = x2-x1
-        if (w_box <= 0.5 * w_img and h_box <= 0.8*h_img) and (w_box>= 0.04* w_img and h_box >= 0.05 * h_img):
+        if (w_box <= 0.5 * w_img and h_box <= 0.8*h_img) and (w_box>= 0.05* w_img and h_box >= 0.08 * h_img):
             #append box
             bboxes.append((x1, y1, x2, y2))
     if expand:
@@ -193,7 +193,7 @@ def nms(bboxes,max_prob=None,overlap_thresh = 0.1):
         
     
      
-def read_house_numbers(image,model,use_cuda):
+def read_house_numbers(image,model,use_cuda,min_prob_thre=0.03):
     #get the bboxes
     bboxes = get_bboxes_MSER(image)
     #get the corresponding images of these ROIs
@@ -202,7 +202,7 @@ def read_house_numbers(image,model,use_cuda):
         #run the images throught the model to get the probs and labels
         pred_labels, max_prob = predict_labels(model, images_np, use_cuda)
         #filer the result
-        mask = (pred_labels!=10) & (max_prob >0.035) #the label is not 10 (non-digit), and it has a high prob
+        mask = (pred_labels!=10) & (max_prob >min_prob_thre) #the label is not 10 (non-digit), and it has a high prob
         #update the bboxes and pred_labels
         if use_cuda:
             #convert variable to cpu again 

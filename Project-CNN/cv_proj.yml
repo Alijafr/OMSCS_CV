@@ -10,8 +10,9 @@ dependencies:
   - scipy=1.7.1
   - setuptools=58.0.4
   - cython=0.29.24
-  - pytorch=1.10
-  - torchvision=0.11.1
+  - pytorch
+  - torchvision
+  - matplotlib
   - pip:
     #- tensorflow-gpu==2.5.0
     - scikit-learn==1.0.1

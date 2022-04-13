@@ -25,7 +25,7 @@ class custom_model(nn.Module):
         self.conv5=nn.Conv2d(in_channels=128,out_channels=256,kernel_size=(3,3),stride =1,padding=1)
         self.conv6=nn.Conv2d(in_channels=256,out_channels=512,kernel_size=(3,3),stride =1,padding=1)
         self.dropout1 = nn.Dropout(p=0.2)
-        self.dropout2 = nn.Dropout(p=0.4)
+        self.dropout2 = nn.Dropout(p=0.6)
         self.pool=nn.MaxPool2d(2,2) #devide by size by half
         self.bn1 = nn.BatchNorm2d(32)
         self.bn2 = nn.BatchNorm2d(64)
@@ -62,6 +62,9 @@ class VGG16(nn.Module):
         self.model = models.vgg16(pretrained=pretrained)
         #change the classifers to accept the current input
         #adaptive_average pooling after the features leyer (CNNs) will change the input from (512,1,1) to (512,7,7) 
+        # if pretrained:
+        #     for param in self.model.features.parameters():
+        #         param.requires_grad = False
         self.model.classifier[0]=nn.Linear(25088,4000)
         self.model.classifier[3]=nn.Linear(4000,1500) 
         self.model.classifier[6]=nn.Linear(1500,11)

@@ -5,6 +5,7 @@ import cv2
 import argparse
 import os
 from recognize_house_number import read_house_numbers
+import numpy as np
 
 
 test_folder = "./test_images/"
@@ -39,7 +40,11 @@ if __name__ == "__main__":
     else:
         model.load_state_dict(torch.load(args.weights_file,map_location=torch.device('cpu')))
     for i in range(len(images)):
-        
+        if i == 0:
+            gauss = np.random.normal(0,1.0,images[i].size)
+            gauss = gauss.reshape(images[i].shape[0],images[i].shape[1],images[i].shape[2]).astype('uint8')
+            # Add the Gaussian noise to the image
+            images[i] = cv2.add(images[i],gauss)
         vis = read_house_numbers(images[i], model, use_cuda)
         
         cv2.imwrite("{}.png".format(out_folder+str(i)),vis)
