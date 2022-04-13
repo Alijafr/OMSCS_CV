@@ -337,71 +337,71 @@ def plot_result(x1,x2,figure_name,title, loss=True):
     plt.close()
     #plt.ylim(0, 7) # consistent scale
     #plt.show()    
-# if __name__ == "__main__":
-    
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument("--model_type",default="custom_model")
-#     parser.add_argument("--out_weights_file",default="custom_model.pt",required=True)
-#     parser.add_argument("--pretained",required=False) #only for VGG16 
-#     parser.add_argument("--pickle_file",required=False) #only for VGG16 
-#     args = parser.parse_args()
-#     if args.model_type == "custom_model":    
-#         model = custom_model(in_channels=3,num_classes= 11)
-#         #save_weight_name = "custom_model.pt"
-#         figure_name = "custom_model_training"
-#     elif args.model_type == "VGG16":
-#         if args.pretained == "True":
-#             model = VGG16(pretrained=True,in_channels=3,num_classes=11)
-#             #save_weight_name = "pre_trained_vgg.pt"
-#             figure_name = "vgg_pretrained"
-#         elif args.pretained == "False":
-#             model = VGG16(pretrained=False,in_channels=3,num_classes=11)
-#             #save_weight_name = "vgg_retrained.pt"
-#             figure_name = "vgg_retrained"
-#         else:
-#             print("wrong input, should be eithre True or False (case-sensative)")
-#             print("going with pretrained VGG16")
-#             model = VGG16(pretrained=True,in_channels=3,num_classes=11)
-#             #save_weight_name = "pre_trained_vgg.pt"
-#             figure_name = "vgg_pretrained"
-#     else:
-#         print("wrong input for model_type, should be either custom_model or VGG16")
-#         sys.exit()
-        
-#     save_weight_name =  args.out_weights_file       
-#     print("training {} command received..... ".format(args.model_type))
-#     #get the loader 
-#     if args.pickle_file != None:
-#         print("loading the pickle file")
-#         loaders = load_pickle(args.pickle_file)
-#     else:
-#         print("no picke file, loading data and data loaders.......")
-#         loaders = prepare_dataset_torch()
-    
-#     #train model 
-    
-#     track_train_loss=[]
-#     track_valid_loss=[]
-#     track_train_accuray = []
-#     track_valid_accuray = []
-#     min_val_loss=np.Inf
-#     #train the model
-#     print("training started.......")
-#     model,track_train_loss,track_valid_loss,track_train_accuray,track_valid_accuray,valid_loss_min = train(7, loaders, model, save_weight_name, track_train_loss, track_valid_loss,track_train_accuray,track_valid_accuray,min_val_loss)
-    
-#     print("testing started.......")
-#     print("loading the saved weights")
-#     model.load_state_dict(torch.load(save_weight_name))
-#     #test accuracy
-#     test(loaders, model)
-#     print("ploting.......")
-#     #plot and save result 
-#     plot_result(track_train_loss, track_valid_loss,figure_name,"Loss for VGG16 [pre-trained]", loss=True)
-#     plot_result(track_train_accuray,track_valid_accuray,figure_name,"Accuracy for VGG16 [pre-trained]",loss=False)
-    
-    
 if __name__ == "__main__":
-    loaders = load_pickle("loaders_with_extra.pickle")
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_type",default="custom_model")
+    parser.add_argument("--out_weights_file",default="custom_model.pt",required=True)
+    parser.add_argument("--pretained",required=False) #only for VGG16 
+    parser.add_argument("--pickle_file",required=False) #only for VGG16 
+    args = parser.parse_args()
+    if args.model_type == "custom_model":    
+        model = custom_model(in_channels=3,num_classes= 11)
+        #save_weight_name = "custom_model.pt"
+        figure_name = "custom_model_training"
+    elif args.model_type == "VGG16":
+        if args.pretained == "True":
+            model = VGG16(pretrained=True,in_channels=3,num_classes=11)
+            #save_weight_name = "pre_trained_vgg.pt"
+            figure_name = "vgg_pretrained"
+        elif args.pretained == "False":
+            model = VGG16(pretrained=False,in_channels=3,num_classes=11)
+            #save_weight_name = "vgg_retrained.pt"
+            figure_name = "vgg_retrained"
+        else:
+            print("wrong input, should be eithre True or False (case-sensative)")
+            print("going with pretrained VGG16")
+            model = VGG16(pretrained=True,in_channels=3,num_classes=11)
+            #save_weight_name = "pre_trained_vgg.pt"
+            figure_name = "vgg_pretrained"
+    else:
+        print("wrong input for model_type, should be either custom_model or VGG16")
+        sys.exit()
+        
+    save_weight_name =  args.out_weights_file       
+    print("training {} command received..... ".format(args.model_type))
+    #get the loader 
+    if args.pickle_file != None:
+        print("loading the pickle file")
+        loaders = load_pickle(args.pickle_file)
+    else:
+        print("no picke file, loading data and data loaders.......")
+        loaders = prepare_dataset_torch()
+    
+    #train model 
+    
+    track_train_loss=[]
+    track_valid_loss=[]
+    track_train_accuray = []
+    track_valid_accuray = []
+    min_val_loss=np.Inf
+    #train the model
+    print("training started.......")
+    model,track_train_loss,track_valid_loss,track_train_accuray,track_valid_accuray,valid_loss_min = train(7, loaders, model, save_weight_name, track_train_loss, track_valid_loss,track_train_accuray,track_valid_accuray,min_val_loss)
+    
+    print("testing started.......")
+    print("loading the saved weights")
+    model.load_state_dict(torch.load(save_weight_name))
+    #test accuracy
+    test(loaders, model)
+    print("ploting.......")
+    #plot and save result 
+    plot_result(track_train_loss, track_valid_loss,figure_name,"Loss for VGG16 [pre-trained]", loss=True)
+    plot_result(track_train_accuray,track_valid_accuray,figure_name,"Accuracy for VGG16 [pre-trained]",loss=False)
+    
+    
+# if __name__ == "__main__":
+#     loaders = load_pickle("loaders_with_extra.pickle")
     # models = []
     # models.append(custom_model(in_channels=3,num_classes= 11))
     # models.append(VGG16(pretrained=True,in_channels=3,num_classes=11))
@@ -435,38 +435,38 @@ if __name__ == "__main__":
     #     plot_result(track_train_loss, track_valid_loss,figure_name[i],titles_loss[i], loss=True)
     #     plot_result(track_train_accuray,track_valid_accuray,figure_name[i],titles_acc[i],loss=False)
         
-    models = []
-    models.append(custom_model(in_channels=3,num_classes= 11))
-    models.append(VGG16(pretrained=True,in_channels=3,num_classes=11))
-    models.append(VGG16(pretrained=False,in_channels=3,num_classes=11))
-    weight_names =  ["custom_model_extra3.pt","vgg_pretrained_extra3.pt","vgg_retrained_extra3.pt"]      
-    figure_name  = ["custom_model_extra3","vgg_pretrained_extra3","vgg_retrained_extra3"]
-    titles_loss = ["Loss for custom model","Loss for VGG16 [pre-trained]", "Loss for VGG16 [re-trained]"]
-    titles_acc = ["Accuracy for custom model","Accuracy for VGG16 [pre-trained]", "Accuracy for VGG16 [re-trained]"]
+    # models = []
+    # models.append(custom_model(in_channels=3,num_classes= 11))
+    # models.append(VGG16(pretrained=True,in_channels=3,num_classes=11))
+    # models.append(VGG16(pretrained=False,in_channels=3,num_classes=11))
+    # weight_names =  ["custom_model_extra3.pt","vgg_pretrained_extra3.pt","vgg_retrained_extra3.pt"]      
+    # figure_name  = ["custom_model_extra3","vgg_pretrained_extra3","vgg_retrained_extra3"]
+    # titles_loss = ["Loss for custom model","Loss for VGG16 [pre-trained]", "Loss for VGG16 [re-trained]"]
+    # titles_acc = ["Accuracy for custom model","Accuracy for VGG16 [pre-trained]", "Accuracy for VGG16 [re-trained]"]
     
-    for i in range(len(models)):
-        #train model 
+    # for i in range(len(models)):
+    #     #train model 
         
-        track_train_loss=[]
-        track_valid_loss=[]
-        track_train_accuray = []
-        track_valid_accuray = []
-        min_val_loss=np.Inf
-        #train the model
-        print("training started.......")
-        models[i],track_train_loss,track_valid_loss,track_train_accuray,track_valid_accuray,valid_loss_min = train(40, loaders, models[i], weight_names[i], track_train_loss, track_valid_loss,track_train_accuray,track_valid_accuray,min_val_loss)
+    #     track_train_loss=[]
+    #     track_valid_loss=[]
+    #     track_train_accuray = []
+    #     track_valid_accuray = []
+    #     min_val_loss=np.Inf
+    #     #train the model
+    #     print("training started.......")
+    #     models[i],track_train_loss,track_valid_loss,track_train_accuray,track_valid_accuray,valid_loss_min = train(40, loaders, models[i], weight_names[i], track_train_loss, track_valid_loss,track_train_accuray,track_valid_accuray,min_val_loss)
         
-        print("testing started.......")
-        print("loading the saved weights")
-        torch.save(models[i].state_dict(), "last2_{}.pt".format(str(i)))
-        test(loaders, models[i])
-        models[i].load_state_dict(torch.load(weight_names[i]))
-        #test accuracy
-        test(loaders, models[i])
-        print("ploting.......")
-        #plot and save result 
-        plot_result(track_train_loss, track_valid_loss,figure_name[i],titles_loss[i], loss=True)
-        plot_result(track_train_accuray,track_valid_accuray,figure_name[i],titles_acc[i],loss=False)
+    #     print("testing started.......")
+    #     print("loading the saved weights")
+    #     torch.save(models[i].state_dict(), "last2_{}.pt".format(str(i)))
+    #     test(loaders, models[i])
+    #     models[i].load_state_dict(torch.load(weight_names[i]))
+    #     #test accuracy
+    #     test(loaders, models[i])
+    #     print("ploting.......")
+    #     #plot and save result 
+    #     plot_result(track_train_loss, track_valid_loss,figure_name[i],titles_loss[i], loss=True)
+    #     plot_result(track_train_accuray,track_valid_accuray,figure_name[i],titles_acc[i],loss=False)
 
 
 
