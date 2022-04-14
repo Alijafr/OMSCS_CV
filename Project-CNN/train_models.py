@@ -387,7 +387,7 @@ if __name__ == "__main__":
     min_val_loss=np.Inf
     #train the model
     print("training started.......")
-    model,track_train_loss,track_valid_loss,track_train_accuray,track_valid_accuray,valid_loss_min = train(7, loaders, model, save_weight_name, track_train_loss, track_valid_loss,track_train_accuray,track_valid_accuray,min_val_loss)
+    model,track_train_loss,track_valid_loss,track_train_accuray,track_valid_accuray,valid_loss_min = train(3, loaders, model, save_weight_name, track_train_loss, track_valid_loss,track_train_accuray,track_valid_accuray,min_val_loss)
     
     print("testing started.......")
     print("loading the saved weights")
