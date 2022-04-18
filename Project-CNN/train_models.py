@@ -24,6 +24,23 @@ format1_test_path = "dataset/test/format1/"
 
 
 def apply_transforms(X,train=True):
+    '''
+    This function takes number of numpy images and apply transforms to them using 
+    pytorch transforms 
+
+    Parameters
+    ----------
+    X : nd.array()
+        Dataset in numpy array.
+    train : Bool, optional
+        Flag to know the type of the transforms to be applied. The default is True.
+
+    Returns
+    -------
+    tensor : torch.tensor 
+        Dataset in tensor format.
+
+    '''
     data_transforms = {'train':transforms.Compose([
         transforms.ToPILImage(),
         transforms.Resize(32),
@@ -52,6 +69,21 @@ def apply_transforms(X,train=True):
     return tensor
 
 def tensor2numpy_image(tensor):
+    '''
+    This function is used to convert the tensor image to numpy,
+    mainly used for display images 
+
+    Parameters
+    ----------
+    tensor : torch.tensor
+        input image
+
+    Returns
+    -------
+    image : np.array
+        output image in numpy
+
+    '''
     
     image = tensor.to("cpu").clone().detach()
     image = image.numpy().squeeze()
@@ -81,6 +113,10 @@ def tensor_imshow(tensor):
     plt.imshow(image)  # convert from Tensor image       
 
 def plot_hist(train_y,test_y,bins=11):
+    '''
+    Helper to viusalize the histogram distribution of the data (number of data per label)
+
+    '''
     fig,axes  = plt.subplots(1, 2,sharex=True,figsize=(10,5))
     fig.suptitle('Dataset Distribution', fontsize=10,fontweight='bold')
     
@@ -96,7 +132,8 @@ def plot_hist(train_y,test_y,bins=11):
     plt.savefig("histograms.png")
     
     
-def prepare_dataset_torch(transfoms=True):
+def prepare_dataset_torch(transfoms=True, save_pickle = False):
+    
     #load dataset
     global format2_mat_path_train
     global format2__mat_path_test
@@ -160,13 +197,14 @@ def prepare_dataset_torch(transfoms=True):
     
     #combine the loaders in a dict
     loaders={'train':train_loader,'valid':valid_loader,'test':test_loader}
+    #save the data loaders in a pickle to save time
+    if save_pickle:
+        save_data_picke(loaders)
     
     return loaders
 
-def save_data_picke():
-    #save the data loaders in a pickle to save time
-    loaders = prepare_dataset_torch()
-    outfile = open('loaders.pickle','wb')
+def save_data_picke(loaders,file_name="louders"):
+    outfile = open('{}.pickle'.format(file_name),'wb')
     pickle.dump(loaders, outfile, protocol=pickle.HIGHEST_PROTOCOL)
     outfile.close()
 

@@ -108,8 +108,8 @@ def draw_bboxes(img,bboxes,labels=[],prob=[]):
         x1,y1,x2,y2 = box
         cv2.rectangle(vis,(x1,y1),(x2,y2),(0,255,0),1)
         if len(labels) :
-            cv2.putText(vis, str(labels[i]), org = (x1, y2 - 3), fontFace = cv2.FONT_HERSHEY_SIMPLEX, color = (255, 0, 0), thickness = 2, fontScale = 0.5)
-            cv2.putText(vis, "p: "+str(round(prob[i],2)), org = (x1, y1 - 3), fontFace = cv2.FONT_HERSHEY_SIMPLEX, color = (255, 0, 0), thickness = 1, fontScale = 0.2)
+            cv2.putText(vis, str(labels[i]), org = (x1, y2 - 3), fontFace = cv2.FONT_HERSHEY_SIMPLEX, color = (255, 0, 0), thickness = 2, fontScale = 1.0)
+            cv2.putText(vis, "p: "+str(round(prob[i],2)), org = (x1, y1 - 3), fontFace = cv2.FONT_HERSHEY_SIMPLEX, color = (255, 0, 0), thickness = 1, fontScale = 0.7)
     return vis
     
 def extract_images(image,bboxes):
@@ -191,9 +191,31 @@ def nms(bboxes,max_prob=None,overlap_thresh = 0.1):
     return list(bboxes[accepted_idx].astype("int")),accepted_idx
         
         
-    
-     
+'''
+this is the main function in this script 
+
+'''
 def read_house_numbers(image,model,use_cuda,min_prob_thre=0.03):
+    '''
+    This funciton shows the digits in any given image
+
+    Parameters
+    ----------
+    image : uint8
+        input image
+    model : CNN
+        CNN trained model
+    use_cuda : Bool
+        whether GPU is available or not.
+    min_prob_thre : float, optional
+        Min pro to consider as true positive. The default is 0.03.
+
+    Returns
+    -------
+    TYPE
+        visualization image.
+
+    '''
     #get the bboxes
     bboxes = get_bboxes_MSER(image)
     #get the corresponding images of these ROIs
@@ -248,8 +270,8 @@ def read_house_numbers(image,model,use_cuda,min_prob_thre=0.03):
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_type",default="custom_model",required=False)
-    parser.add_argument("--weights_file",default="custom_model.pt",required=False) #only for VGG16 
+    parser.add_argument("--model_type",default="VGG16",required=False)
+    parser.add_argument("--weights_file",default="vgg_pretrained.pt",required=False) #only for VGG16 
     parser.add_argument("--input_image",default="dataset/train/format1/2.png",required=False) #name of the output image
     parser.add_argument("--out_image",required=False) #name of the output image
     args = parser.parse_args()
