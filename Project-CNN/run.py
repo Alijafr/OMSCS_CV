@@ -19,11 +19,17 @@ def load_images_from_folder(folder):
             images.append(img)
     return images
 if __name__ == "__main__":
+    if not os.path.isdir(out_folder):
+        os.mkdir(out_folder)
     #check if test_folder already exist
     if not os.path.isdir(test_folder):
         os.mkdir(test_folder)
-    if not os.path.isdir(out_folder):
-        os.mkdir(out_folder)
+        print("test_images folder does not exit")
+        print("creating test_images folder...... Done")
+        print("Please, place the test images inside test_images and re-run the file")
+        sys.exit()
+        
+    
         
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_type",default="VGG16",required=False)
